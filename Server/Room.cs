@@ -44,5 +44,18 @@ namespace ChatServer
         {
             BannedUsers.Remove(user);
         }
+        public void Join(User user)
+        {
+            if (IsPublic)
+                if (AllowedUsers.Contains(user))
+                    ConnectedUsers.Add(user);
+                else
+                    ConnectedUsers.Add(user);
+        }
+        public void Leave(User user)
+        {
+            if (ConnectedUsers.Contains(user))
+                ConnectedUsers.Remove(user);
+        }
     }
 }
