@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ChatServer
+namespace Server
 {
     /// <summary>
     /// User class used to create instances of each user connected to the server.

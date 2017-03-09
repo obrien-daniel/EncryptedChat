@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatServer
+namespace Server
 {
     /// <summary>
     /// Class used to create custom chat rooms for private group discussions.

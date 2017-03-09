@@ -3,7 +3,7 @@ using System.Threading;
 using System.IO;
 using System.Net.Security;
 
-namespace ChatServer
+namespace Server
 {
     // Class to handle each client request separatly
     public class ClientHandler
