@@ -10,13 +10,15 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Collections.Generic;
 
 namespace Server
 {
     class Program
     {
         //Hashtable of all client sockets
-        public static Hashtable ClientList = new Hashtable();
+        //public static Dictionary<User, SslStream> ClientList = new Dictionary<User,SslStream>(); // Global Chat Room
+        public static Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
         //Directory of server certificate used in SSL authentication
         private static readonly string ServerCertificateFile = "./Cert/server.pfx";
         private static readonly string ServerCertificatePassword = null;
@@ -37,7 +39,11 @@ namespace Server
                 // Start listening for client requests.
                 server.Start();
                 Console.WriteLine("TcpListener Started.");
-
+                /*
+                 * Read All chatrooms that are serialized or in database here and add them to the list
+                 */
+                Room globalChat = new Room("Daniel", "Global Chat", true);
+                Rooms.Add("Global Chat", globalChat);
                 /* 
                 Enter the listening loop. This will accept a TCP client and then attempt to authenticate the user.
                 If the user is authenticated, a thread will be created to handle the client communication of the user,
@@ -58,8 +64,9 @@ namespace Server
                     BinaryReader reader = new BinaryReader(sslStream);
                     string userName = reader.ReadString();
                     string password = reader.ReadString();
+                    string chatRoom = reader.ReadString();
                     bool authResult = false;
-                    string authMessage = String.Empty;
+                    string authMessage = string.Empty;
                     //create folders if they don't exist
                     Directory.CreateDirectory("./Users");
                     //Directory.CreateDirectory("./PublicKeys"); //Not used
@@ -78,37 +85,53 @@ namespace Server
                         user.PublicKey = GenerateKeyPair(userName);
                         SerializeObject<User>(user, "./Users/" + userName + ".xml");
                     }
-                    if (IsUsedLoggedIn(userName))
-                    {
-                        authResult = false;
-                        authMessage = "You are already logged in.";
-                    }
-                    else if (!ComparePasswords(user.Password, password))
+
+                    Room r;
+                    if (!ComparePasswords(user.Password, password))
                     {
                         authResult = false;
                         authMessage = "Your password or username is incorrect.";
+                    }
+                    else if (!Rooms.TryGetValue(chatRoom, out r)){
+                        if (r.IsUsedLoggedIn(userName))
+                        {
+                            authResult = false;
+                            authMessage = "You are already logged in.";
+                        }
+                        else
+                            authResult = true;
                     }
                     else
                     {
                         authResult = true;
                     }
-                    // send the authentication results back to the client
-                    BinaryWriter writer = new BinaryWriter(sslStream);
-                    writer.Write(authResult);
-                    writer.Write(authMessage);
-                    // if user authentication was successful, create a thread with the ssl stream (client socket)
-                    if (authResult)
+                    // send the authentication results back to the client if it failed
+                    if (!authResult)
+                    {
+
+                        Console.WriteLine("Test1");
+                        BinaryWriter writer = new BinaryWriter(sslStream);
+                        writer.Write(authResult);
+                        writer.Write(authMessage);
+                        writer.Close();
+                        sslStream.Close();
+                    } else
                     {
                         Console.WriteLine(user.Username + " has connected from: " + clientIP);
-                        ClientHandler client = new ClientHandler(sslStream, user);
-                        client.Start();
-                        ClientList.Add(user, sslStream);
-                        UpdateUser(sslStream, user.Username);
-                        UpdateUsers(user, true);
-                    }
-                    else
-                    {
-                        writer.Close(); //closes both writer and clientsocket
+                        // ClientHandler client = new ClientHandler(sslStream, user);
+                        // client.Start();
+                        // ClientList.Add(user, sslStream);
+                        if (Rooms.ContainsKey(chatRoom))
+                        {
+                            Rooms[chatRoom].Join(user, sslStream);
+                        } else
+                        {
+                            Room room = new Server.Room(user.Username, chatRoom, true); // create by default public chat room
+                            Rooms.Add(chatRoom, room);
+                            room.Join(user, sslStream);
+                        }
+                        //UpdateUserWithConnectedUsersList(sslStream, user.Username);
+                        //UpdateAllConnectedUsersWithNewUser(user, true);
                     }
 
                 }
@@ -221,95 +244,6 @@ namespace Server
                     Array.Clear(key, 0, key.Length);
                 if (hash != null)
                     Array.Clear(hash, 0, hash.Length);
-            }
-        }
-        /// <summary>
-        /// Checks if the user is already logged in.
-        /// </summary>
-        /// <param name="userName"></param>
-        /// <returns></returns>
-        private static bool IsUsedLoggedIn(string userName)
-        {
-            foreach (DictionaryEntry client in ClientList)
-            {
-                User user = (User)client.Key;
-                if (user.Username == userName)
-                    return true;
-            }
-            return false;
-        }
-        /// <summary>
-        /// Updates user list of a new client with all current users
-        /// </summary>
-        /// <param name="newClient"></param>
-        /// <param name="userName"></param>
-        private static void UpdateUser(SslStream newClient, string userName)
-        {
-            foreach (DictionaryEntry client in ClientList)
-            {
-                User user = (User)client.Key;
-                if (user.Username != userName)
-                {
-                    BinaryWriter writer = new BinaryWriter(newClient);
-                    int OpCode = 1;
-                    writer.Write(OpCode);
-                    writer.Write(user.Username);
-                    writer.Write(user.PublicKey);
-                    writer.Flush();
-                }
-            }
-        }
-        /// <summary>
-        /// Update an already connected client's user list about one specific user.
-        /// true for add, false for remove
-        /// </summary>
-        /// <param name="userName"></param>
-        /// <param name="status"></param>
-        public static void UpdateUsers(User user, bool status)
-        {
-            //if preexisting client,
-            foreach (DictionaryEntry client in ClientList)
-            {
-                User endUser = (User)client.Key;
-                if (endUser.Username != user.Username)
-                {
-                    SslStream broadcastStream = (SslStream)client.Value;
-                    BinaryWriter writer = new BinaryWriter(broadcastStream);
-                    int OpCode = 2;
-                    writer.Write(OpCode);
-                    writer.Write(user.Username);
-                    writer.Write(user.PublicKey);
-                    writer.Write(status);
-                    writer.Flush();
-                }
-            }
-
-        }
-        /// <summary>
-        /// Sendes a byte array message to a user.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="count"></param>
-        /// <param name="sourceUser"></param>
-        /// <param name="targetUser"></param>
-        /// <param name="flag"></param>
-        public static void SendMessage(byte[] message, int count, string sourceUser, string targetUser, bool flag)
-        {
-            foreach (DictionaryEntry Item in ClientList)
-            {
-                User user = (User)Item.Key;
-                if (user.Username == targetUser)
-                {
-                    SslStream broadcastSocket = (SslStream)Item.Value;
-                    BinaryWriter writer = new BinaryWriter(broadcastSocket);
-                    int OpCode = 3;
-                    writer.Write(OpCode);
-                    writer.Write(sourceUser);
-                    writer.Write(count);
-                    writer.Write(message);
-                    writer.Flush();
-                    Console.WriteLine("[" + sourceUser + " sending message to " + targetUser + "]:" + Convert.ToBase64String(message)); //base 64 is smallest representation of large text
-                }
             }
         }
 

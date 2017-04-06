@@ -10,10 +10,12 @@ namespace Server
     {
         private SslStream ClientSocket { get; set; }
         private User User { get; set; }
-        public ClientHandler(SslStream client, User user)
+        private string RoomName { get; set; }
+        public ClientHandler(SslStream client, User user, string roomName)
         {
-            this.ClientSocket = client;
-            this.User = user;
+            ClientSocket = client;
+            User = user;
+            RoomName = roomName;
         }
         /// <summary>
         /// Creates a thread to run the client listener
@@ -40,7 +42,7 @@ namespace Server
                     string userName = reader.ReadString();
                     int count = reader.ReadInt32();
                     byte[] encryptedMessage = reader.ReadBytes(count);
-                    Program.SendMessage(encryptedMessage, count, User.Username, userName, false);
+                    Program.Rooms[RoomName].SendMessage(encryptedMessage, count, User.Username, userName, false);
                 }
             }
             catch (IOException ex)
@@ -53,9 +55,10 @@ namespace Server
             }
             finally //finally is used because we always want the connections to be closed after the infinite while loops exits.
             {
-                Program.UpdateUsers(User, false);
-                Program.ClientList.Remove(User);
-                reader.Close();
+               // Program.UpdateAllConnectedUsersWithNewUser(User, false);
+                Program.Rooms[RoomName].Leave(User);
+                if(reader != null)
+                    reader.Close();
                 ClientSocket.Close();
 
             }

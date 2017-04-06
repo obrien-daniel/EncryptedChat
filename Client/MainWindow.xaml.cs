@@ -276,6 +276,7 @@ namespace Client
                 BinaryWriter writer = new BinaryWriter(sslStream);
                 writer.Write(textBoxUsername.Text);
                 writer.Write(passwordBox.Password);
+                writer.Write("Global Chat"); // Chat group name sent
                 writer.Flush();
                 // Receieve response from server about authentication
                 BinaryReader reader = new BinaryReader(sslStream);
