@@ -42,8 +42,8 @@ namespace Server
                 /*
                  * Read All chatrooms that are serialized or in database here and add them to the list
                  */
-                Room globalChat = new Room("Daniel", "Global Chat", true);
-                Rooms.Add("Global Chat", globalChat);
+                Room globalChat = new Room("Daniel", "Global", true);
+                Rooms.Add("Global", globalChat);
                 /* 
                 Enter the listening loop. This will accept a TCP client and then attempt to authenticate the user.
                 If the user is authenticated, a thread will be created to handle the client communication of the user,
@@ -92,7 +92,8 @@ namespace Server
                         authResult = false;
                         authMessage = "Your password or username is incorrect.";
                     }
-                    else if (!Rooms.TryGetValue(chatRoom, out r)){
+                    else if (Rooms.TryGetValue(chatRoom, out r))
+                    {
                         if (r.IsUsedLoggedIn(userName))
                         {
                             authResult = false;
@@ -108,8 +109,6 @@ namespace Server
                     // send the authentication results back to the client if it failed
                     if (!authResult)
                     {
-
-                        Console.WriteLine("Test1");
                         BinaryWriter writer = new BinaryWriter(sslStream);
                         writer.Write(authResult);
                         writer.Write(authMessage);
@@ -117,21 +116,12 @@ namespace Server
                         sslStream.Close();
                     } else
                     {
+                        BinaryWriter writer = new BinaryWriter(sslStream);
+                        writer.Write(authResult);
+                        writer.Write(authMessage);
                         Console.WriteLine(user.Username + " has connected from: " + clientIP);
-                        // ClientHandler client = new ClientHandler(sslStream, user);
-                        // client.Start();
-                        // ClientList.Add(user, sslStream);
-                        if (Rooms.ContainsKey(chatRoom))
-                        {
-                            Rooms[chatRoom].Join(user, sslStream);
-                        } else
-                        {
-                            Room room = new Server.Room(user.Username, chatRoom, true); // create by default public chat room
-                            Rooms.Add(chatRoom, room);
-                            room.Join(user, sslStream);
-                        }
-                        //UpdateUserWithConnectedUsersList(sslStream, user.Username);
-                        //UpdateAllConnectedUsersWithNewUser(user, true);
+                        ClientHandler client = new ClientHandler(sslStream, user);
+                        client.Start();
                     }
 
                 }

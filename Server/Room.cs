@@ -14,7 +14,7 @@ namespace Server
     /// </summary>
     class Room
     {
-        public Dictionary<User, SslStream> ConnectedUsers = new Dictionary<User, SslStream>(); // Username mapped to SSLStream
+        public Dictionary<User, ConcurrentStreamWriter> ConnectedUsers = new Dictionary<User, ConcurrentStreamWriter>(); // Username mapped to SSLStream
         public string Admin { get; set; } // Owner/ Creator of chatroom
         public string Name { get; set; } // Name of Chat Room, used to join
         // Initializing all of these Lists here for now, change in future
@@ -52,65 +52,100 @@ namespace Server
             if (BannedUsers.Contains(user))
                 BannedUsers.Remove(user);
         }
-        // Attempt to Join a chat room
+
         /// <summary>
         /// Attempt to join a chat room.
         /// If it is public, a user will be allowed to join if they aren't on the banned user list
         /// If it isn't public, a user will only be allowed if they are on the allowed users list
         /// </summary>
         /// <param name="user"></param>
-        public void Join(User user, SslStream sslStream)
+        /// <param name="sslStream"></param>
+        /// <returns></returns>
+        public bool Join(User user, ConcurrentStreamWriter sslStream)
         {
             if (IsPublic)
             {
                 if (!BannedUsers.Contains(user.Username))
                 {
-                    BinaryWriter writer = new BinaryWriter(sslStream, Encoding.UTF8, true);
-                    writer.Write(true);
-                    writer.Write(string.Empty);
-                    writer.Close();
+                    Console.WriteLine("IN JOINING METHOD - NOT BANNED");
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int opcode = 4;
+                            writer.Write(opcode);
+                            writer.Write(Name);
+                            writer.Write("You have joined: " + Name + ".\n The administrator for this chat room is: " + Admin);
+                        }
+                        sslStream.Write(mem.ToArray());
+                    }
                     ConnectedUsers.Add(user, sslStream);
-                    ClientHandler client = new ClientHandler(sslStream, user, Name);
-                    client.Start();
+                    //ClientHandler client = new ClientHandler(sslStream, user, Name);
+                    //client.Start();
                 }
                 else
                 {
-                    BinaryWriter writer = new BinaryWriter(sslStream, Encoding.UTF8, false);
-                    writer.Write(false);
-                    writer.Write(string.Format("You are banned from: {0}", Name));
-                    writer.Close();
-                    return;
+                    Console.WriteLine("IN JOINING METHOD -  BANNED");
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int opcode = 4;
+                            writer.Write(opcode);
+                            writer.Write(Name);
+                            writer.Write(string.Format("You are banned from: {0}", Name));
+                        }
+                        sslStream.Write(mem.ToArray());
+                    }
+                    return false;
                 }
             }
             else
             {
                 if (AllowedUsers.Contains(user.Username))
                 {
-                    BinaryWriter writer = new BinaryWriter(sslStream, Encoding.UTF8, true);
-                    writer.Write(true);
-                    writer.Write(string.Empty);
-                    writer.Close();
+                    Console.WriteLine("IN JOINING METHOD -  PRIVATE");
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int opcode = 4;
+                            writer.Write(opcode);
+                            writer.Write(Name);
+                            writer.Write("You have joined: " + Name + ".\n The administrator for this chat room is: " + Admin);
+                        }
+                        sslStream.Write(mem.ToArray());
+                    }
                     ConnectedUsers.Add(user, sslStream);
-                    ClientHandler client = new ClientHandler(sslStream, user, Name);
-                    client.Start();
+                    //  ClientHandler client = new ClientHandler(sslStream, user, Name);
+                    //  client.Start();
                 }
                 else
                 {
-                    BinaryWriter writer = new BinaryWriter(sslStream, Encoding.UTF8, false);
-                    writer.Write(false);
-                    writer.Write(string.Format("{0} is not a public chat room, and you are not on the allowed user list.", Name));
-                    writer.Close();
-                    return;
+                    Console.WriteLine("IN JOINING METHOD -  PRIVATE ALLOWED");
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int opcode = 4;
+                            writer.Write(opcode);
+                            writer.Write(Name);
+                            writer.Write(string.Format("{0} is not a public chat room, and you are not on the allowed user list.", Name));
+                        }
+                        sslStream.Write(mem.ToArray());
+                    }
+                    return false;
                 }
             }
             UpdateUserWithConnectedUsersList(sslStream, user.Username);
             UpdateAllConnectedUsersWithNewUser(user, true);
+            return true;
         }
         public void Leave(User user)
         {
             if (ConnectedUsers.ContainsKey(user))
             {
-                ConnectedUsers[user].Close(); //close the stream
+               // ConnectedUsers[user].Dispose(); //close the stream
                 ConnectedUsers.Remove(user);
             }
             UpdateAllConnectedUsersWithNewUser(user, false);
@@ -131,15 +166,21 @@ namespace Server
                 User user = (User)Item.Key;
                 if (user.Username == targetUser)
                 {
-                    SslStream broadcastSocket = (SslStream)Item.Value;
-                    BinaryWriter writer = new BinaryWriter(broadcastSocket);
-                    int OpCode = 3;
-                    writer.Write(OpCode);
-                    writer.Write(sourceUser);
-                    writer.Write(count);
-                    writer.Write(message);
-                    writer.Flush();
-                    Console.WriteLine("[" + sourceUser + " sending message to " + targetUser + "]:" + Convert.ToBase64String(message)); //base 64 is smallest representation of large text
+                    ConcurrentStreamWriter broadcastSocket = (ConcurrentStreamWriter)Item.Value;
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int OpCode = 3;
+                            writer.Write(OpCode);
+                            writer.Write(Name);
+                            writer.Write(sourceUser);
+                            writer.Write(count);
+                            writer.Write(message);
+                        }
+                        broadcastSocket.Write(mem.ToArray());
+                    }
+                    Console.WriteLine("[" + sourceUser + " sending message to " + targetUser + "]:" + Convert.ToBase64String(message)); //base 64 is smallest representation of large text - REMOVE THIS AFTER TESTING
                 }
             }
         }
@@ -164,19 +205,26 @@ namespace Server
         /// </summary>
         /// <param name="newClient"></param>
         /// <param name="userName"></param>
-        private void UpdateUserWithConnectedUsersList(SslStream newClient, string userName)
+        private void UpdateUserWithConnectedUsersList(ConcurrentStreamWriter newClient, string userName)
         {
             foreach (var client in ConnectedUsers)
             {
                 User user = (User)client.Key;
                 if (user.Username != userName)
                 {
-                    BinaryWriter writer = new BinaryWriter(newClient);
-                    int OpCode = 1;
-                    writer.Write(OpCode);
-                    writer.Write(user.Username);
-                    writer.Write(user.PublicKey);
-                    writer.Flush();
+                    Console.WriteLine("Updating user with: " + user.Username);
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int OpCode = 1;
+                            writer.Write(OpCode);
+                            writer.Write(user.Username);
+                            writer.Write(user.PublicKey);
+                            writer.Write(Name);
+                        }
+                        newClient.Write(mem.ToArray());
+                    }
                 }
             }
         }
@@ -194,14 +242,21 @@ namespace Server
                 User endUser = (User)client.Key;
                 if (endUser.Username != user.Username)
                 {
-                    SslStream broadcastStream = (SslStream)client.Value;
-                    BinaryWriter writer = new BinaryWriter(broadcastStream);
-                    int OpCode = 2;
-                    writer.Write(OpCode);
-                    writer.Write(user.Username);
-                    writer.Write(user.PublicKey);
-                    writer.Write(status);
-                    writer.Flush();
+                    Console.WriteLine("Updating " + endUser.Username + "  with: " + user.Username);
+                    ConcurrentStreamWriter broadcastStream = (ConcurrentStreamWriter)client.Value;
+                    using (MemoryStream mem = new MemoryStream())
+                    {
+                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
+                        {
+                            int OpCode = 2;
+                            writer.Write(OpCode);
+                            writer.Write(user.Username);
+                            writer.Write(user.PublicKey);
+                            writer.Write(status);
+                            writer.Write(Name);
+                        }
+                        broadcastStream.Write(mem.ToArray());
+                    }
                 }
             }
 

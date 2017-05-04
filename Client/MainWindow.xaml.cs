@@ -12,6 +12,10 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
+using System.Windows.Media;
+using System.Collections.ObjectModel;
 
 namespace Client
 {
@@ -25,25 +29,27 @@ namespace Client
         //Directory of client certificate used in SSL authentication
         private static readonly string ClientCertificateFile = "./Cert/client.pfx";
         private static readonly string ClientCertificatePassword = null;
-        //Binding list containing all connected users on the server
-        public BindingList<User> users = new BindingList<User>();
-        //lock object for synchronization;
-        private static object _syncLock = new object();
         TcpClient client = new TcpClient();
         SslStream sslStream = null;
         BackgroundWorker backgroundWorker = null;
         private string serverIP = string.Empty;
         private int port = 0;
         private string connectedUser = string.Empty;
+        private User currentUser;
+        public ObservableCollection<ChatRoomView> Tabs { get; set; }
 
         public MainWindow()
         {
+            Tabs = new ObservableCollection<ChatRoomView>();
+            Tabs.Add(new ChatRoomView("Global"));
+            Tabs.Add(new ChatRoomView("+"));
             InitializeComponent();
-            //Enable the cross access to this collection elsewhere
-            BindingOperations.EnableCollectionSynchronization(users, _syncLock);
-            listBox.ItemsSource = users;
+            //listBox.ItemsSource = users;
+            tabControl.ItemsSource = Tabs;
             buttonDisconnect.IsEnabled = false;
-            buttonSend.IsEnabled = false;
+            // buttonSend.IsEnabled = false;
+            //tabControl
+
 
         }
         /// <summary>
@@ -65,58 +71,85 @@ namespace Client
                 Console.WriteLine("reading opcode: " + OpCode);
                 if (OpCode == 1) //update entire user list, occurs on client/server connection
                 {
+                    Console.WriteLine("OPCODE 2 HAS BEEN ACCEPTED");
                     string userName = reader.ReadString();
                     string publicKey = reader.ReadString();
+                    string chatRoom = reader.ReadString();
                     User user = new User(userName, publicKey);
-                    Console.WriteLine("adding user: " + user.UserName);
-                    lock (_syncLock)
+                    Console.WriteLine("adding user: " + user.UserName + " to : " + chatRoom);
+                    var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                    if (tab != null)
                     {
-                        users.Add(user);
+                        lock (tab._syncLock)
+                        {
+                            tab.Users.Add(user);
+                        }
                     }
                     e.Result = null; //no message is passed on to UI
                 }
                 else if (OpCode == 2) //Update user list, occurs whenever a user connects/disconnects
                 {
+                    Console.WriteLine("OPCODE 2 HAS BEEN ACCEPTED");
                     string userName = reader.ReadString(); //username of other client
                     string publicKey = reader.ReadString();
                     bool status = reader.ReadBoolean(); //connecting (true) or disconnecting (false)
+                    string chatRoom = reader.ReadString();
                     string message = null;
                     User user = new User(userName, publicKey);
                     if (status)
                     {
-                        lock (_syncLock)
+                        var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                        if (tab != null)
                         {
-                            users.Add(user);
+                            lock (tab._syncLock)
+                            {
+                                Console.WriteLine("Adding " + user.UserName + " to " + chatRoom);
+                                tab.Users.Add(user);
+                            }
                         }
                         message = userName + " has joined the chat.";
                     }
                     else
                     {
-                        var usersCopy = new List<User>(users);
-                        foreach (var item in usersCopy)
+
+                        var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                        if (tab != null)
                         {
-                            if (item.UserName == userName)
+                            var usersCopy = new List<User>(tab.Users);
+                            foreach (var item in usersCopy)
                             {
-                                lock (_syncLock)
+                                if (item.UserName == userName)
                                 {
-                                    users.Remove(item);
+                                    lock (tab._syncLock)
+                                    {
+                                        tab.Users.Remove(item);
+                                    }
                                 }
                             }
                         }
                         message = userName + " has left the chat.";
                     }
-                    e.Result = message; //pass on message to UI
+                    e.Result = new Tuple<string, string>(chatRoom, message); //pass on message to UI
                 }
                 else if (OpCode == 3) //new message
                 {
+                    string chatRoom = reader.ReadString();
                     string username = reader.ReadString();
                     int count = reader.ReadInt32();
                     byte[] encryptedMessage = reader.ReadBytes(count);
-                    //string privateKey = File.ReadAllText(@"..\..\..\Server\bin\Debug\PrivateKeys\" + connectedUser + "_privateKey.txt"); // dir for when running in visual studio
-                    string privateKey = File.ReadAllText("./PrivateKeys/" + connectedUser + "_privateKey.txt"); //dir for when running release with client and server in same dir
-                    string decryptedMessage = RSADecrypt(encryptedMessage, privateKey);
-                    string message = username + ": " + decryptedMessage;
+                    string privateKey = File.ReadAllText(@"..\..\..\Server\bin\Debug\PrivateKeys\" + connectedUser + "_privateKey.txt"); // dir for when running in visual studio
+                    //string privateKey = File.ReadAllText("./PrivateKeys/" + connectedUser + "_privateKey.txt"); //dir for when running release with client and server in same dir
+                    Message message = (Message)Deserialize(encryptedMessage);
+                    message.Decrypt(privateKey);
+                    //string decryptedMessage = RSADecrypt(encryptedMessage, privateKey);
+                    //string message = username + ": " + decryptedMessage;
                     e.Result = message; //pass on message to UI
+                }
+                else if (OpCode == 4) //System message
+                {
+                    string chatRoom = reader.ReadString();
+                    string message = reader.ReadString();
+                    e.Result = new Tuple<string, string>(chatRoom, message); //pass on message to UI
                 }
             }
             catch (IOException ex)
@@ -137,25 +170,67 @@ namespace Client
         {
             if (client.Connected)
             {
-                listBox.ItemsSource = null;
+                /*listBox.ItemsSource = null;
                 lock (_syncLock)
                 {
                     listBox.ItemsSource = users;
-                }
+                }*/
                 // Update UI
-                string response = e.Result as string;
-                if (response != null)
-                    textBlock.Text += Environment.NewLine + response;
+                if (e.Result is Tuple<string, string>)
+                {
+                    Tuple<string, string> response = e.Result as Tuple<string, string>; // if it is not string, it assigns null
+                    if (response != null)
+                    {
+                        var tab = Tabs.FirstOrDefault(i => i.Name == response.Item1);
+                        if (tab != null)
+                        {
+                            lock (tab._syncLock2)
+                            {
+                                tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, response.Item2, Brushes.Blue.ToString()));
+                            }
+                        }
+
+                    }
+                }
+                else if (e.Result is Message)
+                {
+                    Message message = e.Result as Message;
+                    if (message != null)
+                    {
+                        Console.Write(message.Chatroom);
+                        var tab = Tabs.FirstOrDefault(i => i.Name == message.Chatroom);
+                        if (tab != null)
+                        {
+                            lock (tab._syncLock2)
+                            {
+                                tab.Messages.Add(message);
+                            }
+                        }
+                    }
+                }
                 // Continue listening on server stream
                 backgroundWorker.RunWorkerAsync();
             }
             else
             {
-                textBlock.Text += Environment.NewLine + "You have been disconnected from the server.";
+                // SEND TO ALL TABS
+                foreach (var tab in Tabs)
+                {
+                    if (tab != null)
+                    {
+                        lock (tab._syncLock2)
+                        {
+                            tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "You have been disconnected from the server.", Brushes.Red.ToString()));
+                        }
+                    }
+                }
                 DropClient();
             }
         }
-
+        public enum Opcode
+        {
+            Join, Leave, SendMessage, AddUser, KickUser, BanUser, UnbanUser
+        }
         /// <summary>
         /// Sends encrypted message to each user currently connected to the server.
         /// </summary>
@@ -163,24 +238,35 @@ namespace Client
         /// <param name="e"></param>
         private void buttonSend_Click(object sender, RoutedEventArgs e)
         {
+            //TabItem ti = (TabItem)tabControl.SelectedItem;
+            //var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString());
+            Console.WriteLine("Click: ");
+            ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
+
+            Console.WriteLine("Click: " + tab.Name);
             try
             {
                 if (client.Connected)
                 {
                     BinaryWriter writer = new BinaryWriter(sslStream);
-                    foreach (var user in users)
+                    foreach (var user in tab.Users)
                     {
                         Console.WriteLine("Sending message to: " + user.UserName);
-                        byte[] encryptedMessage = RSAEncrypt(textBox.Text, user.PublicKey);
+                        Message message = new Message(currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, Brushes.Black.ToString());
+                        message.Encrypt();
+                        byte[] encryptedMessage = Serialize(message);
                         int count = encryptedMessage.Count();
+                        writer.Write((int)Opcode.SendMessage);
+                        writer.Write(tab.Name); // add chat room
                         writer.Write(user.UserName);
                         writer.Write(count);
-                        writer.Write(encryptedMessage); //Instead of just the encrypted message, send a serialized Message object that contains this
+                        writer.Write(encryptedMessage);
                         writer.Flush();
                     }
 
-                    textBlock.Text += Environment.NewLine + connectedUser + ": " + textBox.Text;
-                    textBox.Clear();
+                    tab.Messages.Add(new Message(currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, Brushes.Black.ToString()));
+                    tab.Message = string.Empty;
+                    // textBox.Clear();
                 }
             }
             catch (SocketException ex)
@@ -190,59 +276,14 @@ namespace Client
             catch (Exception ex)
             {
                 Console.WriteLine("Exception: {0}", ex);
-                textBlock.Text += Environment.NewLine + "There was an exception in encrypting and sending the message. Make sure the private key is not corrupt or missing";
+                tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "There was an exception in encrypting and sending the message. Make sure the private key is not corrupt or missing", Brushes.Red.ToString()));
 
             }
 
-        }
-        /// <summary>
-        /// Encrypts a string with a public key using the RSA algorithm.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="publicKey"></param>
-        /// <returns></returns>
-        public static byte[] RSAEncrypt(string message, string publicKey)
-        {
-            try
-            {
-                byte[] dataToEncrypt = Encoding.ASCII.GetBytes(message); //using ASCII encoding because 1 char = 1 byte
-                Console.WriteLine("Encrypting " + dataToEncrypt.Length + " bytes.");
-                //Create a new instance of RSACryptoServiceProvider.
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.FromXmlString(publicKey);
-                //Encrypt the passed byte array and specify OAEP padding.  
-                return rsa.Encrypt(dataToEncrypt, true);
-            }
-            catch (CryptographicException e)
-            {
-                Console.WriteLine(e.Message);
-                return null;
-            }
-        }
-        /// <summary>
-        /// Decrypts byte array messages with a private key using the RSA algorithm.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="privateKey"></param>
-        /// <returns></returns>
-        public static string RSADecrypt(byte[] message, string privateKey)
-        {
-            try
-            {
-                //Create a new instance of RSACryptoServiceProvider.
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.FromXmlString(privateKey);
-                //Decrypt the passed byte array and specify OAEP padding.  
-                return Encoding.ASCII.GetString(rsa.Decrypt(message, true));
-            }
-            catch (CryptographicException e)
-            {
-                Console.WriteLine(e.ToString());
-                return "Error Decrypting Message. The private or public key may be corrupt or incorrect.";
-            }
         }
         private void scrollViewer_Changed(object sender, ScrollChangedEventArgs e)
         {
+            ScrollViewer scrollViewer = sender as ScrollViewer;
             if (e.ExtentHeightChange != 0)
                 scrollViewer.ScrollToVerticalOffset(scrollViewer.ExtentHeight);
         }
@@ -254,10 +295,13 @@ namespace Client
         /// <param name="e"></param>
         private void buttonConnect_Click(object sender, RoutedEventArgs e)
         {
+            /*
+            TabItem ti = (TabItem)tabControl.SelectedItem;
+            var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString()); */
+            var tab = tabControl.SelectedItem as ChatRoomView;
             try
             {
-                textBlock.Text = string.Empty;
-                textBlock.Text += "Connecting to Server...";
+                tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, "Connecting to Server...", "Connecting to Server...", Brushes.Blue.ToString()));
                 serverIP = textBoxIP.Text;
                 port = Convert.ToInt32(textBoxPort.Text);
                 client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
@@ -271,32 +315,35 @@ namespace Client
                 Console.WriteLine("Client connected.");
                 sslStream.AuthenticateAsClient(ServerCertificateName, clientCertificateCollection, SslProtocols.Tls12, false);
                 Console.WriteLine("SSL authentication completed.");
-                textBlock.Text += Environment.NewLine + "Authenticating User...";
+                tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Authenticating User...", Brushes.Blue.ToString()));
                 // Send username and password to sever for authentication
                 BinaryWriter writer = new BinaryWriter(sslStream);
                 writer.Write(textBoxUsername.Text);
                 writer.Write(passwordBox.Password);
-                writer.Write("Global Chat"); // Chat group name sent
+                writer.Write("Global"); // Chat group name sent
                 writer.Flush();
                 // Receieve response from server about authentication
                 BinaryReader reader = new BinaryReader(sslStream);
                 bool result = reader.ReadBoolean();
                 string response = reader.ReadString();
+                Console.WriteLine("Finished reading." + response);
                 if (result == false)
                 {
-                    textBlock.Text += Environment.NewLine + response;
+                    tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, response, Brushes.Red.ToString()));
                     writer.Close();
                     sslStream.Close();
                     DropClient();
                 }
                 else
                 {
+                    currentUser = new User(textBoxUsername.Text, null);
                     buttonDisconnect.IsEnabled = true;
-                    buttonSend.IsEnabled = true;
+                    //buttonSend.IsEnabled = true;
                     buttonConnect.IsEnabled = false;
                     connectedUser = textBoxUsername.Text;
-                    textBlock.Text += Environment.NewLine + "Connected to Server: " + textBoxIP.Text;
+                    tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Connected to Server: " + textBoxIP.Text, Brushes.Blue.ToString()));
                     backgroundWorker = new BackgroundWorker();
+                    Console.WriteLine("Starting background worker listener");
                     backgroundWorker.DoWork += ServerListener;
                     backgroundWorker.RunWorkerCompleted += bgCheck_RunWorkerCompleted;
                     backgroundWorker.RunWorkerAsync();
@@ -307,6 +354,63 @@ namespace Client
                 Console.WriteLine(ex);
                 DropClient();
             }
+        }
+        private void tabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
+
+            if (tab != null && tab.Name != null)
+            {
+                if (tab.Name.Equals("+"))
+                {
+                    string name = string.Empty;
+                    PopupDialog popup = new PopupDialog();
+                    popup.ShowDialog();
+                    if (popup.Canceled == true)
+                        return;
+                    else
+                    {
+                        string result = popup.RoomName;
+                        name = result; 
+                    }
+                    if (!(name.Equals("+") || name == string.Empty))
+                    {
+                        ChatRoomView newTab = new ChatRoomView(name);
+                        Tabs.Insert(Tabs.Count - 1, newTab);
+                        tabControl.ItemsSource = Tabs;
+                        tabControl.SelectedItem = newTab;
+                        BinaryWriter writer = new BinaryWriter(sslStream);
+                        writer.Write((int)Opcode.Join);
+                        writer.Write(name);
+                        writer.Flush();
+
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Serialize object into byte array
+        /// </summary>
+        /// <param name="serializableObject"></param>
+        /// <returns>byte array</returns>
+        public static byte[] Serialize(object serializableObject)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(memoryStream, serializableObject);
+                return memoryStream.ToArray();
+            }
+        }
+        /// <summary>
+        /// Deserializes byte array
+        /// </summary>
+        /// <param name="serializedObject"></param>
+        /// <returns>object</returns>
+        public static object Deserialize(byte[] serializedObject)
+        {
+            using (var memoryStream = new MemoryStream(serializedObject))
+                return (new BinaryFormatter()).Deserialize(memoryStream);
         }
 
         /// <summary>
@@ -331,12 +435,19 @@ namespace Client
         {
             client.Close();
             sslStream.Close();
-            lock (_syncLock)
+            // SEND TO ALL TABS
+            foreach (var tab in Tabs)
             {
-                users.Clear();
+                if (tab != null)
+                {
+                    lock (tab._syncLock)
+                    {
+                        tab.Users.Clear();
+                    }
+                }
             }
             buttonDisconnect.IsEnabled = false;
-            buttonSend.IsEnabled = false;
+            //buttonSend.IsEnabled = false;
             buttonConnect.IsEnabled = true;
         }
         /// <summary>

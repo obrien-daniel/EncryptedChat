@@ -5,22 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Chat Client" Height="524.229" Width="493.812">
+        Title="Chat Client" Height="699.404" Width="565.44">
     <Grid>
-        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" Margin="17,119,0,0" VerticalAlignment="Top" Width="293">
-            <ScrollViewer x:Name="scrollViewer" ScrollChanged="scrollViewer_Changed" Height="240">
-            <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Height="auto" Margin="-1,-1,0,0" TextWrapping="Wrap" Width="289"/>
-            </ScrollViewer>
-        </Border>
-        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="80" Margin="17,380,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="290" MaxLength="214"/>
-        <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding}" Height="244" Margin="315,119,0,0" VerticalAlignment="Top" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding UserName}"/>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-        <Button x:Name="buttonSend" Content="Send" HorizontalAlignment="Left" Height="35" Margin="315,401,0,0" VerticalAlignment="Top" Width="141" Click="buttonSend_Click"/>
+
         <TextBox x:Name="textBoxUsername" HorizontalAlignment="Left" Height="24" Margin="115,24,0,0" TextWrapping="Wrap" Text="Daniel" VerticalAlignment="Top" Width="109"/>
         <TextBox x:Name="textBoxIP" HorizontalAlignment="Left" Height="24" Margin="115,56,0,0" TextWrapping="Wrap" Text="127.0.0.1" VerticalAlignment="Top" Width="109"/>
         <Label x:Name="labelUsername" Content="Username:" HorizontalAlignment="Left" Margin="44,24,0,0" VerticalAlignment="Top"/>
@@ -32,6 +19,46 @@
         <Label x:Name="labelIP" Content="Port:" HorizontalAlignment="Left" Margin="270,58,0,0" VerticalAlignment="Top"/>
         <Button x:Name="buttonDisconnect" Content="Disconnect" HorizontalAlignment="Left" Height="24" Margin="175,87,0,0" VerticalAlignment="Top" Width="129
                 " Click="buttonDisconnect_Click"/>
-
+        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="auto" Margin="10,128,0,0" VerticalAlignment="Top" Width="auto" ItemsSource="{Binding}" SelectionChanged="tabDynamic_SelectionChanged">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Name}"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" Margin="17,119,0,0" VerticalAlignment="Top" Width="293">
+                            <ScrollViewer x:Name="scrollViewer" ScrollChanged="scrollViewer_Changed" Height="240" VerticalScrollBarVisibility="Auto">
+                                <ListBox x:Name="listBoxMessages" HorizontalAlignment="Stretch" ItemsSource="{Binding Messages}" Height="auto" Margin="-1,-1,0,0" Width="auto" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+             Grid.Row="0" >
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock  Foreground="{Binding FontColor}">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0}: {1}">
+                                                        <Binding Path="Sender"/>
+                                                        <Binding Path="DecryptedMessage"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </ScrollViewer>
+                        </Border>
+                        <TextBox x:Name="textBox" HorizontalAlignment="Left" Text="{Binding Message}" Height="80" Margin="17,380,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="290" MaxLength="214"/>
+                        <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding Users}" Height="244" Margin="315,119,0,0" VerticalAlignment="Top" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding UserName}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Button x:Name="buttonSend" Content="Send" HorizontalAlignment="Left" Height="35" Margin="315,401,0,0" VerticalAlignment="Top" Width="141" Click="buttonSend_Click"/>
+                    </Grid>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
     </Grid>
 </Window>
