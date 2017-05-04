@@ -42,10 +42,11 @@ namespace Server
                 AllowedUsers.Remove(user);
             BannedUsers.Add(user);
         }
-        public void KickUser(User user)
+        public void KickUser(string user)
         {
-            if (ConnectedUsers.ContainsKey(user))
-                ConnectedUsers.Remove(user);
+            var usr = ConnectedUsers.First(i => i.Key.Username == user);
+            if (usr.Key != null)
+                ConnectedUsers.Remove(usr.Key);
         }
         public void UnbanUser(string user)
         {
@@ -67,7 +68,6 @@ namespace Server
             {
                 if (!BannedUsers.Contains(user.Username))
                 {
-                    Console.WriteLine("IN JOINING METHOD - NOT BANNED");
                     using (MemoryStream mem = new MemoryStream())
                     {
                         using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
@@ -85,7 +85,6 @@ namespace Server
                 }
                 else
                 {
-                    Console.WriteLine("IN JOINING METHOD -  BANNED");
                     using (MemoryStream mem = new MemoryStream())
                     {
                         using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
@@ -104,7 +103,6 @@ namespace Server
             {
                 if (AllowedUsers.Contains(user.Username))
                 {
-                    Console.WriteLine("IN JOINING METHOD -  PRIVATE");
                     using (MemoryStream mem = new MemoryStream())
                     {
                         using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
@@ -122,7 +120,6 @@ namespace Server
                 }
                 else
                 {
-                    Console.WriteLine("IN JOINING METHOD -  PRIVATE ALLOWED");
                     using (MemoryStream mem = new MemoryStream())
                     {
                         using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))

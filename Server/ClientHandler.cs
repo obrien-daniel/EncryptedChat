@@ -93,12 +93,28 @@ namespace Server
                             Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName, false);
                             break;
                         case Opcode.AddUser:
+                            string user = reader.ReadString();
+                            chatRoom = reader.ReadString();
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username)) 
+                                Program.Rooms[chatRoom].AllowedUsers.Add(user);
                             break;
                         case Opcode.KickUser:
+                            user = reader.ReadString();
+                            chatRoom = reader.ReadString();
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
+                                Program.Rooms[chatRoom].KickUser(user);
                             break;
                         case Opcode.BanUser:
+                            user = reader.ReadString();
+                            chatRoom = reader.ReadString();
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
+                                Program.Rooms[chatRoom].BanUser(user);
                             break;
                         case Opcode.UnbanUser:
+                            user = reader.ReadString();
+                            chatRoom = reader.ReadString();
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
+                                Program.Rooms[chatRoom].UnbanUser(user);
                             break;
                     }
                 }
