@@ -36,6 +36,7 @@ namespace Client
         private int port = 0;
         private string connectedUser = string.Empty;
         private User currentUser;
+        private string color;
         public ObservableCollection<ChatRoomView> Tabs { get; set; }
 
         public MainWindow()
@@ -252,7 +253,7 @@ namespace Client
                     foreach (var user in tab.Users)
                     {
                         Console.WriteLine("Sending message to: " + user.UserName);
-                        Message message = new Message(currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, Brushes.Black.ToString());
+                        Message message = new Message(currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
                         message.Encrypt();
                         byte[] encryptedMessage = Serialize(message);
                         int count = encryptedMessage.Count();
@@ -264,7 +265,7 @@ namespace Client
                         writer.Flush();
                     }
 
-                    tab.Messages.Add(new Message(currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, Brushes.Black.ToString()));
+                    tab.Messages.Add(new Message(currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString()));
                     tab.Message = string.Empty;
                     // textBox.Clear();
                 }

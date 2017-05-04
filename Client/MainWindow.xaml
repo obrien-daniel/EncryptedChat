@@ -3,10 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="Chat Client" Height="699.404" Width="565.44">
-    <Grid>
+        Title="Chat Client" Height="570" Width="489.66">
+    <Grid Margin="0,0,0.2,-3.4">
 
         <TextBox x:Name="textBoxUsername" HorizontalAlignment="Left" Height="24" Margin="115,24,0,0" TextWrapping="Wrap" Text="Daniel" VerticalAlignment="Top" Width="109"/>
         <TextBox x:Name="textBoxIP" HorizontalAlignment="Left" Height="24" Margin="115,56,0,0" TextWrapping="Wrap" Text="127.0.0.1" VerticalAlignment="Top" Width="109"/>
@@ -28,9 +29,9 @@
             <TabControl.ContentTemplate>
                 <DataTemplate>
                     <Grid>
-                        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" Margin="17,119,0,0" VerticalAlignment="Top" Width="293">
+                        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" VerticalAlignment="Top" Width="293">
                             <ScrollViewer x:Name="scrollViewer" ScrollChanged="scrollViewer_Changed" Height="240" VerticalScrollBarVisibility="Auto">
-                                <ListBox x:Name="listBoxMessages" HorizontalAlignment="Stretch" ItemsSource="{Binding Messages}" Height="auto" Margin="-1,-1,0,0" Width="auto" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                                <ListBox x:Name="listBoxMessages" HorizontalAlignment="Stretch" ItemsSource="{Binding Messages}" Height="auto"  Width="auto" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
              Grid.Row="0" >
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
@@ -47,18 +48,19 @@
                                 </ListBox>
                             </ScrollViewer>
                         </Border>
-                        <TextBox x:Name="textBox" HorizontalAlignment="Left" Text="{Binding Message}" Height="80" Margin="17,380,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="290" MaxLength="214"/>
-                        <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding Users}" Height="244" Margin="315,119,0,0" VerticalAlignment="Top" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <TextBox x:Name="textBox" HorizontalAlignment="Left" Text="{Binding Message}" Height="80" Margin="0,250,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="290" MaxLength="214"/>
+                        <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding Users}" Height="244" Margin="315,0,0,0" VerticalAlignment="Top" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding UserName}"/>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Button x:Name="buttonSend" Content="Send" HorizontalAlignment="Left" Height="35" Margin="315,401,0,0" VerticalAlignment="Top" Width="141" Click="buttonSend_Click"/>
+                        <Button x:Name="buttonSend" Content="Send" HorizontalAlignment="Left" Height="35" Margin="315,260,0,0" VerticalAlignment="Top" Width="141" Click="buttonSend_Click"/>
                     </Grid>
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
+        <xctk:ColorPicker Name="ClrPcker_Background" Width="50" Height="25" SelectedColor="Black" Margin="409,497,0,0" />
     </Grid>
 </Window>
