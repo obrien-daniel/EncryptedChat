@@ -36,7 +36,7 @@ namespace Client
         private int port = 0;
         private string connectedUser = string.Empty;
         private User currentUser;
-        private string color;
+
         public ObservableCollection<ChatRoomView> Tabs { get; set; }
 
         public MainWindow()
@@ -138,7 +138,7 @@ namespace Client
                     string username = reader.ReadString();
                     int count = reader.ReadInt32();
                     byte[] encryptedMessage = reader.ReadBytes(count);
-                    string privateKey = File.ReadAllText(@"..\..\..\Server\bin\Debug\PrivateKeys\" + connectedUser + "_privateKey.txt"); // dir for when running in visual studio
+                    string privateKey = File.ReadAllText(@"..\..\..\..\Server\bin\Debug\netcoreapp3.1\PrivateKeys\" + connectedUser + "_privateKey.txt"); // dir for when running in visual studio
                     //string privateKey = File.ReadAllText("./PrivateKeys/" + connectedUser + "_privateKey.txt"); //dir for when running release with client and server in same dir
                     Message message = (Message)Deserialize(encryptedMessage);
                     message.Decrypt(privateKey);
@@ -372,7 +372,7 @@ namespace Client
                     else
                     {
                         string result = popup.RoomName;
-                        name = result; 
+                        name = result;
                     }
                     if (!(name.Equals("+") || name == string.Empty))
                     {
