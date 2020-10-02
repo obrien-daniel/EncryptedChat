@@ -35,7 +35,7 @@ namespace Server
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
                 server = new TcpListener(localAddr, port);
                 //Creates a socket for client communication
-                clientSocket = default(TcpClient);
+                clientSocket = default;
                 // Start listening for client requests.
                 server.Start();
                 Console.WriteLine("TcpListener Started.");
@@ -293,9 +293,9 @@ namespace Server
         /// <returns></returns>
         public static T DeSerializeObject<T>(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName)) { return default(T); }
+            if (string.IsNullOrEmpty(fileName)) { return default; }
 
-            T objectOut = default(T);
+            T objectOut = default;
 
             try
             {
