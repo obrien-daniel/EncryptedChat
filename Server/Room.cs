@@ -206,18 +206,16 @@ namespace Server
                 if (user.Username != userName)
                 {
                     Console.WriteLine("Updating user with: " + user.Username);
-                    using (MemoryStream mem = new MemoryStream())
+                    using MemoryStream mem = new MemoryStream();
+                    using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
                     {
-                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
-                        {
-                            int OpCode = 1;
-                            writer.Write(OpCode);
-                            writer.Write(user.Username);
-                            writer.Write(user.PublicKey);
-                            writer.Write(Name);
-                        }
-                        newClient.Write(mem.ToArray());
+                        int OpCode = 1;
+                        writer.Write(OpCode);
+                        writer.Write(user.Username);
+                        writer.Write(user.PublicKey);
+                        writer.Write(Name);
                     }
+                    newClient.Write(mem.ToArray());
                 }
             }
         }
@@ -237,19 +235,17 @@ namespace Server
                 {
                     Console.WriteLine("Updating " + endUser.Username + "  with: " + user.Username);
                     ConcurrentStreamWriter broadcastStream = client.Value;
-                    using (MemoryStream mem = new MemoryStream())
+                    using MemoryStream mem = new MemoryStream();
+                    using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
                     {
-                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
-                        {
-                            int OpCode = 2;
-                            writer.Write(OpCode);
-                            writer.Write(user.Username);
-                            writer.Write(user.PublicKey);
-                            writer.Write(status);
-                            writer.Write(Name);
-                        }
-                        broadcastStream.Write(mem.ToArray());
+                        int OpCode = 2;
+                        writer.Write(OpCode);
+                        writer.Write(user.Username);
+                        writer.Write(user.PublicKey);
+                        writer.Write(status);
+                        writer.Write(Name);
                     }
+                    broadcastStream.Write(mem.ToArray());
                 }
             }
 

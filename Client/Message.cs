@@ -40,26 +40,22 @@ namespace Client
         {
             if (DecryptedMessage == null || User == null)
                 return;
-            using (Rijndael rijAlg = Rijndael.Create())
-            {
-                // Create an encryptor to perform the stream transform.
-                ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
+            using Rijndael rijAlg = Rijndael.Create();
+            // Create an encryptor to perform the stream transform.
+            ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
 
-                using (MemoryStream msEncrypt = new MemoryStream())
+            using (MemoryStream msEncrypt = new MemoryStream())
+            {
+                using CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write);
+                using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                 {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            swEncrypt.Write(DecryptedMessage);
-                        }
-                        EncryptedMessage = Convert.ToBase64String(msEncrypt.ToArray());
-                    }
+                    swEncrypt.Write(DecryptedMessage);
                 }
-                // Encrypt key and initialization vector
-                _encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
-                _encryptedIV = RSAEncrypt(rijAlg.IV);
+                EncryptedMessage = Convert.ToBase64String(msEncrypt.ToArray());
             }
+            // Encrypt key and initialization vector
+            _encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
+            _encryptedIV = RSAEncrypt(rijAlg.IV);
         }
         public void Decrypt(string privateKey)
         {
@@ -72,29 +68,20 @@ namespace Client
             byte[] key = RSADecrypt(_encryptedSymmetrickey, privateKey);
             byte[] IV = RSADecrypt(_encryptedIV, privateKey);
             // Create an Rijndael object  with the specified key and IV.
-            using (Rijndael rijAlg = Rijndael.Create())
-            {
-                rijAlg.Key = key;
-                rijAlg.IV = IV;
+            using Rijndael rijAlg = Rijndael.Create();
+            rijAlg.Key = key;
+            rijAlg.IV = IV;
 
-                // Create a decryptor to perform the stream transform.
-                ICryptoTransform decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV);
+            // Create a decryptor to perform the stream transform.
+            ICryptoTransform decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV);
 
-                byte[] cipherTextBytes = Convert.FromBase64String(EncryptedMessage);
-                // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherTextBytes))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-                            // Read the decrypted bytes from the decrypting stream  and place them in a string.
-                            DecryptedMessage = srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
-
-            }
+            byte[] cipherTextBytes = Convert.FromBase64String(EncryptedMessage);
+            // Create the streams used for decryption.
+            using MemoryStream msDecrypt = new MemoryStream(cipherTextBytes);
+            using CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+            using StreamReader srDecrypt = new StreamReader(csDecrypt);
+            // Read the decrypted bytes from the decrypting stream  and place them in a string.
+            DecryptedMessage = srDecrypt.ReadToEnd();
         }
         private byte[] RSAEncrypt(byte[] message)
         {

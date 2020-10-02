@@ -391,12 +391,10 @@ namespace Client
         /// <returns>byte array</returns>
         public static byte[] Serialize(object serializableObject)
         {
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-                formatter.Serialize(memoryStream, serializableObject);
-                return memoryStream.ToArray();
-            }
+            using MemoryStream memoryStream = new MemoryStream();
+            BinaryFormatter formatter = new BinaryFormatter();
+            formatter.Serialize(memoryStream, serializableObject);
+            return memoryStream.ToArray();
         }
         /// <summary>
         /// Deserializes byte array
@@ -405,8 +403,8 @@ namespace Client
         /// <returns>object</returns>
         public static object Deserialize(byte[] serializedObject)
         {
-            using (MemoryStream memoryStream = new MemoryStream(serializedObject))
-                return (new BinaryFormatter()).Deserialize(memoryStream);
+            using MemoryStream memoryStream = new MemoryStream(serializedObject);
+            return (new BinaryFormatter()).Deserialize(memoryStream);
         }
 
         /// <summary>

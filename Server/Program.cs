@@ -181,12 +181,10 @@ namespace Server
                 {
                     //generate random salt by using cryptographic random number generator
                     randomBytes.GetBytes(salt);
-                    using (Rfc2898DeriveBytes hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000))
-                    {
-                        key = hashBytes.GetBytes(20);
-                        Buffer.BlockCopy(salt, 0, ret, 0, 20);
-                        Buffer.BlockCopy(key, 0, ret, 20, 20);
-                    }
+                    using Rfc2898DeriveBytes hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000);
+                    key = hashBytes.GetBytes(20);
+                    Buffer.BlockCopy(salt, 0, ret, 0, 20);
+                    Buffer.BlockCopy(key, 0, ret, 20, 20);
                 }
                 // returns salt/key pair
                 return Convert.ToBase64String(ret);
@@ -274,14 +272,12 @@ namespace Server
             {
                 XmlDocument xmlDocument = new XmlDocument();
                 XmlSerializer serializer = new XmlSerializer(serializableObject.GetType());
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    serializer.Serialize(stream, serializableObject);
-                    stream.Position = 0;
-                    xmlDocument.Load(stream);
-                    xmlDocument.Save(fileName);
-                    stream.Close();
-                }
+                using MemoryStream stream = new MemoryStream();
+                serializer.Serialize(stream, serializableObject);
+                stream.Position = 0;
+                xmlDocument.Load(stream);
+                xmlDocument.Save(fileName);
+                stream.Close();
             }
             catch (Exception ex)
             {
@@ -308,19 +304,17 @@ namespace Server
                 xmlDocument.Load(fileName);
                 string xmlString = xmlDocument.OuterXml;
 
-                using (StringReader read = new StringReader(xmlString))
+                using StringReader read = new StringReader(xmlString);
+                Type outType = typeof(T);
+
+                XmlSerializer serializer = new XmlSerializer(outType);
+                using (XmlReader reader = new XmlTextReader(read))
                 {
-                    Type outType = typeof(T);
-
-                    XmlSerializer serializer = new XmlSerializer(outType);
-                    using (XmlReader reader = new XmlTextReader(read))
-                    {
-                        objectOut = (T)serializer.Deserialize(reader);
-                        reader.Close();
-                    }
-
-                    read.Close();
+                    objectOut = (T)serializer.Deserialize(reader);
+                    reader.Close();
                 }
+
+                read.Close();
             }
             catch (Exception ex)
             {
