@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Security.Cryptography;
 using System.IO;
+using System.Security.Cryptography;
 namespace Client
 {
     /// <summary>
     /// This class creates a message with the user it was sent from and the message settings.
     /// </summary>
     [SerializableAttribute]
-    public class Message 
+    public class Message
     {
         public User User { get; set; }
         public string Chatroom { get; set; }
@@ -18,7 +18,7 @@ namespace Client
         private byte[] encryptedIV;
         [NonSerialized]
         private string decryptedMessage;
-        public string DecryptedMessage { get { return decryptedMessage; } set { decryptedMessage = value; } } 
+        public string DecryptedMessage { get => decryptedMessage; set => decryptedMessage = value; }
         public string Font { get; set; }
         public string FontColor { get; set; }
         public int FontSize { get; set; }

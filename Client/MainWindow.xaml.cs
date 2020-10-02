@@ -1,21 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Net.Sockets;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using System.Net.Security;
-using System.Security.Authentication;
+using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.Serialization;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
-using System.Collections.ObjectModel;
 
 namespace Client
 {
@@ -29,9 +25,9 @@ namespace Client
         //Directory of client certificate used in SSL authentication
         private static readonly string ClientCertificateFile = "./Cert/client.pfx";
         private static readonly string ClientCertificatePassword = null;
-        TcpClient client = new TcpClient();
-        SslStream sslStream = null;
-        BackgroundWorker backgroundWorker = null;
+        private TcpClient client = new TcpClient();
+        private SslStream sslStream = null;
+        private BackgroundWorker backgroundWorker = null;
         private string serverIP = string.Empty;
         private int port = 0;
         private string connectedUser = string.Empty;
@@ -41,9 +37,11 @@ namespace Client
 
         public MainWindow()
         {
-            Tabs = new ObservableCollection<ChatRoomView>();
-            Tabs.Add(new ChatRoomView("Global"));
-            Tabs.Add(new ChatRoomView("+"));
+            Tabs = new ObservableCollection<ChatRoomView>
+            {
+                new ChatRoomView("Global"),
+                new ChatRoomView("+")
+            };
             InitializeComponent();
             //listBox.ItemsSource = users;
             tabControl.ItemsSource = Tabs;
@@ -78,7 +76,7 @@ namespace Client
                     string chatRoom = reader.ReadString();
                     User user = new User(userName, publicKey);
                     Console.WriteLine("adding user: " + user.UserName + " to : " + chatRoom);
-                    var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                    ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
                     if (tab != null)
                     {
                         lock (tab._syncLock)
@@ -99,7 +97,7 @@ namespace Client
                     User user = new User(userName, publicKey);
                     if (status)
                     {
-                        var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                        ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
                         if (tab != null)
                         {
                             lock (tab._syncLock)
@@ -113,11 +111,11 @@ namespace Client
                     else
                     {
 
-                        var tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
+                        ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
                         if (tab != null)
                         {
-                            var usersCopy = new List<User>(tab.Users);
-                            foreach (var item in usersCopy)
+                            List<User> usersCopy = new List<User>(tab.Users);
+                            foreach (User item in usersCopy)
                             {
                                 if (item.UserName == userName)
                                 {
@@ -182,7 +180,7 @@ namespace Client
                     Tuple<string, string> response = e.Result as Tuple<string, string>; // if it is not string, it assigns null
                     if (response != null)
                     {
-                        var tab = Tabs.FirstOrDefault(i => i.Name == response.Item1);
+                        ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == response.Item1);
                         if (tab != null)
                         {
                             lock (tab._syncLock2)
@@ -199,7 +197,7 @@ namespace Client
                     if (message != null)
                     {
                         Console.Write(message.Chatroom);
-                        var tab = Tabs.FirstOrDefault(i => i.Name == message.Chatroom);
+                        ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == message.Chatroom);
                         if (tab != null)
                         {
                             lock (tab._syncLock2)
@@ -215,7 +213,7 @@ namespace Client
             else
             {
                 // SEND TO ALL TABS
-                foreach (var tab in Tabs)
+                foreach (ChatRoomView tab in Tabs)
                 {
                     if (tab != null)
                     {
@@ -250,7 +248,7 @@ namespace Client
                 if (client.Connected)
                 {
                     BinaryWriter writer = new BinaryWriter(sslStream);
-                    foreach (var user in tab.Users)
+                    foreach (User user in tab.Users)
                     {
                         Console.WriteLine("Sending message to: " + user.UserName);
                         Message message = new Message(currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
@@ -299,7 +297,7 @@ namespace Client
             /*
             TabItem ti = (TabItem)tabControl.SelectedItem;
             var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString()); */
-            var tab = tabControl.SelectedItem as ChatRoomView;
+            ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
             try
             {
                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, "Connecting to Server...", "Connecting to Server...", Brushes.Blue.ToString()));
@@ -308,8 +306,8 @@ namespace Client
                 client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
                 client.Connect(serverIP, port);
 
-                var clientCertificate = new X509Certificate2(ClientCertificateFile, ClientCertificatePassword);
-                var clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
+                X509Certificate2 clientCertificate = new X509Certificate2(ClientCertificateFile, ClientCertificatePassword);
+                X509CertificateCollection clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
 
                 //creates an SSL Stream that contains the TCP client socket as the underlying stream.
                 sslStream = new SslStream(client.GetStream(), false, App_CertificateValidation);
@@ -396,7 +394,7 @@ namespace Client
         /// <returns>byte array</returns>
         public static byte[] Serialize(object serializableObject)
         {
-            using (var memoryStream = new MemoryStream())
+            using (MemoryStream memoryStream = new MemoryStream())
             {
                 BinaryFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(memoryStream, serializableObject);
@@ -410,7 +408,7 @@ namespace Client
         /// <returns>object</returns>
         public static object Deserialize(byte[] serializedObject)
         {
-            using (var memoryStream = new MemoryStream(serializedObject))
+            using (MemoryStream memoryStream = new MemoryStream(serializedObject))
                 return (new BinaryFormatter()).Deserialize(memoryStream);
         }
 
@@ -422,7 +420,7 @@ namespace Client
         /// <param name="chain"></param>
         /// <param name="sslPolicyErrors"></param>
         /// <returns></returns>
-        private static bool App_CertificateValidation(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static bool App_CertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
             if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors) { return true; } //we don't have a proper certificate tree
@@ -437,7 +435,7 @@ namespace Client
             client.Close();
             sslStream.Close();
             // SEND TO ALL TABS
-            foreach (var tab in Tabs)
+            foreach (ChatRoomView tab in Tabs)
             {
                 if (tab != null)
                 {

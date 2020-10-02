@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Threading;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Security;
-using System.Collections.Generic;
+using System.Threading;
 
 namespace Server
 {
@@ -95,7 +95,7 @@ namespace Server
                         case Opcode.AddUser:
                             string user = reader.ReadString();
                             chatRoom = reader.ReadString();
-                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username)) 
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
                                 Program.Rooms[chatRoom].AllowedUsers.Add(user);
                             break;
                         case Opcode.KickUser:
@@ -129,11 +129,11 @@ namespace Server
             }
             finally //finally is used because we always want the connections to be closed after the infinite while loops exits.
             {
-               // Program.UpdateAllConnectedUsersWithNewUser(User, false);
-               if(connectedRooms != null)
-                   foreach(string roomName in connectedRooms)
+                // Program.UpdateAllConnectedUsersWithNewUser(User, false);
+                if (connectedRooms != null)
+                    foreach (string roomName in connectedRooms)
                         Program.Rooms[roomName].Leave(User);
-                if(reader != null)
+                if (reader != null)
                     reader.Close();
                 ClientSocketWriter.Dispose();
                 ClientSocket.Close();

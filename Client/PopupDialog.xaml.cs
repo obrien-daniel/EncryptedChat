@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
 
 namespace Client
 {
@@ -19,8 +7,8 @@ namespace Client
     /// </summary>
     public partial class PopupDialog : Window
     {
-      //  internal bool canceled;
-      //  internal string roomName;
+        //  internal bool canceled;
+        //  internal string roomName;
 
         public PopupDialog()
         {
@@ -32,13 +20,13 @@ namespace Client
         private void buttonCancel_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             Canceled = true;
-            RoomName = String.Empty;
+            RoomName = string.Empty;
             Close();
         }
 
         private void buttnOk_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            if (!String.IsNullOrEmpty(InputTextBox.Text))
+            if (!string.IsNullOrEmpty(InputTextBox.Text))
             {
                 RoomName = InputTextBox.Text;
                 Canceled = false;
@@ -46,7 +34,7 @@ namespace Client
             }
             else
                 MessageBox.Show("Must provide a user name in the textbox.");
-          //  Close();
+            //  Close();
         }
     }
 }
