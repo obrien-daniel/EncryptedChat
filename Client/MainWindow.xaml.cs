@@ -177,8 +177,8 @@ namespace Client
                 // Update UI
                 if (e.Result is Tuple<string, string>)
                 {
-                    Tuple<string, string> response = e.Result as Tuple<string, string>; // if it is not string, it assigns null
-                    if (response != null)
+                    // if it is not string, it assigns null
+                    if (e.Result is Tuple<string, string> response)
                     {
                         ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == response.Item1);
                         if (tab != null)
@@ -193,8 +193,7 @@ namespace Client
                 }
                 else if (e.Result is Message)
                 {
-                    Message message = e.Result as Message;
-                    if (message != null)
+                    if (e.Result is Message message)
                     {
                         Console.Write(message.Chatroom);
                         ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == message.Chatroom);
@@ -356,9 +355,7 @@ namespace Client
         }
         private void TabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
-
-            if (tab != null && tab.Name != null)
+            if (tabControl.SelectedItem is ChatRoomView tab && tab.Name != null)
             {
                 if (tab.Name.Equals("+"))
                 {
