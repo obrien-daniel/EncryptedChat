@@ -24,6 +24,11 @@ namespace Server
 
         private static void Main(string[] args)
         {
+            if (args is null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
             TcpListener server = null;
             TcpClient clientSocket = null;
             try

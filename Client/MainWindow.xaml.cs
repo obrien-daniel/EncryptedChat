@@ -359,9 +359,9 @@ namespace Client
             {
                 if (tab.Name.Equals("+"))
                 {
-                    string name = string.Empty;
                     PopupDialog popup = new PopupDialog();
                     popup.ShowDialog();
+                    string name;
                     if (popup.Canceled == true)
                         return;
                     else

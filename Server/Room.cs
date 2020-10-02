@@ -152,8 +152,7 @@ namespace Server
         /// <param name="count"></param>
         /// <param name="sourceUser"></param>
         /// <param name="targetUser"></param>
-        /// <param name="flag"></param>
-        public void SendMessage(byte[] message, int count, string sourceUser, string targetUser, bool flag)
+        public void SendMessage(byte[] message, int count, string sourceUser, string targetUser)
         {
             foreach (KeyValuePair<User, ConcurrentStreamWriter> Item in ConnectedUsers)
             {

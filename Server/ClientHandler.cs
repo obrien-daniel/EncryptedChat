@@ -90,7 +90,7 @@ namespace Server
                             string userName = reader.ReadString();
                             int count = reader.ReadInt32();
                             byte[] encryptedMessage = reader.ReadBytes(count);
-                            Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName, false);
+                            Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName);
                             break;
                         case Opcode.AddUser:
                             string user = reader.ReadString();
