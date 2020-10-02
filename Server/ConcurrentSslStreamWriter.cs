@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net.Security;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Server
 {
@@ -36,8 +33,7 @@ namespace Server
                 _stream.WriteByte(_buffer.Take());
 
             //when this instance has been disposed, flush any residue left in the ConcurrentStreamWriter and exit
-            byte b;
-            while (_buffer.TryTake(out b))
+            while (_buffer.TryTake(out byte b))
                 _stream.WriteByte(b);
         }
 
@@ -47,7 +43,7 @@ namespace Server
                 throw new ObjectDisposedException("ConcurrentStreamWriter");
 
             lock (_writeBufferLock)
-                foreach (var b in data)
+                foreach (byte b in data)
                     _buffer.Add(b);
 
             InitFlusher();

@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 
 namespace Client
 {
     public class ChatRoomView : INotifyPropertyChanged
     {
-        private string name;
-        public string Name { get { return name; } set { name = value; OnPropertyChanged(); } }
-        private string message;
-        public string Message { get { return message; } set { message = value; OnPropertyChanged(); } }
+        private string _name;
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        private string _message;
+        public string Message { get => _message; set { _message = value; OnPropertyChanged(); } }
         public BindingList<Message> Messages { get; set; }
         //Binding list containing all connected users on the server
         public BindingList<User> Users { get; set; }
@@ -35,8 +30,7 @@ namespace Client
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            if (PropertyChanged != null)
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

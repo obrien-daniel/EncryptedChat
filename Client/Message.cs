@@ -1,24 +1,24 @@
 ﻿using System;
-using System.Security.Cryptography;
 using System.IO;
+using System.Security.Cryptography;
 namespace Client
 {
     /// <summary>
     /// This class creates a message with the user it was sent from and the message settings.
     /// </summary>
     [SerializableAttribute]
-    public class Message 
+    public class Message
     {
         public User User { get; set; }
         public string Chatroom { get; set; }
         public string Sender { get; set; }
         public DateTime DateTimeStamp { get; set; }
         public string EncryptedMessage { get; set; }
-        private byte[] encryptedSymmetrickey;
-        private byte[] encryptedIV;
+        private byte[] _encryptedSymmetrickey;
+        private byte[] _encryptedIV;
         [NonSerialized]
-        private string decryptedMessage;
-        public string DecryptedMessage { get { return decryptedMessage; } set { decryptedMessage = value; } } 
+        private string _decryptedMessage;
+        public string DecryptedMessage { get => _decryptedMessage; set => _decryptedMessage = value; }
         public string Font { get; set; }
         public string FontColor { get; set; }
         public int FontSize { get; set; }
@@ -40,61 +40,48 @@ namespace Client
         {
             if (DecryptedMessage == null || User == null)
                 return;
-            using (Rijndael rijAlg = Rijndael.Create())
-            {
-                // Create an encryptor to perform the stream transform.
-                ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
+            using Rijndael rijAlg = Rijndael.Create();
+            // Create an encryptor to perform the stream transform.
+            ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
 
-                using (MemoryStream msEncrypt = new MemoryStream())
+            using (MemoryStream msEncrypt = new MemoryStream())
+            {
+                using CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write);
+                using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                 {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
-                        {
-                            swEncrypt.Write(DecryptedMessage);
-                        }
-                        EncryptedMessage = Convert.ToBase64String(msEncrypt.ToArray());
-                    }
+                    swEncrypt.Write(DecryptedMessage);
                 }
-                // Encrypt key and initialization vector
-                encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
-                encryptedIV = RSAEncrypt(rijAlg.IV);
+                EncryptedMessage = Convert.ToBase64String(msEncrypt.ToArray());
             }
+            // Encrypt key and initialization vector
+            _encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
+            _encryptedIV = RSAEncrypt(rijAlg.IV);
         }
         public void Decrypt(string privateKey)
         {
             if (EncryptedMessage == null || EncryptedMessage.Length <= 0)
                 return;
-            if (encryptedSymmetrickey == null || encryptedSymmetrickey.Length <= 0)
+            if (_encryptedSymmetrickey == null || _encryptedSymmetrickey.Length <= 0)
                 throw new ArgumentNullException("Key");
-            if (encryptedIV == null || encryptedIV.Length <= 0)
+            if (_encryptedIV == null || _encryptedIV.Length <= 0)
                 throw new ArgumentNullException("IV");
-            byte[] key = RSADecrypt(encryptedSymmetrickey, privateKey);
-            byte[] IV = RSADecrypt(encryptedIV, privateKey);
+            byte[] key = RSADecrypt(_encryptedSymmetrickey, privateKey);
+            byte[] IV = RSADecrypt(_encryptedIV, privateKey);
             // Create an Rijndael object  with the specified key and IV.
-            using (Rijndael rijAlg = Rijndael.Create())
-            {
-                rijAlg.Key = key;
-                rijAlg.IV = IV;
+            using Rijndael rijAlg = Rijndael.Create();
+            rijAlg.Key = key;
+            rijAlg.IV = IV;
 
-                // Create a decryptor to perform the stream transform.
-                ICryptoTransform decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV);
+            // Create a decryptor to perform the stream transform.
+            ICryptoTransform decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV);
 
-                byte[] cipherTextBytes = Convert.FromBase64String(EncryptedMessage);
-                // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherTextBytes))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                        {
-                            // Read the decrypted bytes from the decrypting stream  and place them in a string.
-                            DecryptedMessage = srDecrypt.ReadToEnd();
-                        }
-                    }
-                }
-
-            }
+            byte[] cipherTextBytes = Convert.FromBase64String(EncryptedMessage);
+            // Create the streams used for decryption.
+            using MemoryStream msDecrypt = new MemoryStream(cipherTextBytes);
+            using CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+            using StreamReader srDecrypt = new StreamReader(csDecrypt);
+            // Read the decrypted bytes from the decrypting stream  and place them in a string.
+            DecryptedMessage = srDecrypt.ReadToEnd();
         }
         private byte[] RSAEncrypt(byte[] message)
         {

@@ -1,18 +1,15 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Security;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Server
 {
     /// <summary>
     /// Class used to create custom chat rooms for private group discussions.
     /// </summary>
-    class Room
+    internal class Room
     {
         public Dictionary<User, ConcurrentStreamWriter> ConnectedUsers = new Dictionary<User, ConcurrentStreamWriter>(); // Username mapped to SSLStream
         public string Admin { get; set; } // Owner/ Creator of chatroom
@@ -44,7 +41,7 @@ namespace Server
         }
         public void KickUser(string user)
         {
-            var usr = ConnectedUsers.First(i => i.Key.Username == user);
+            KeyValuePair<User, ConcurrentStreamWriter> usr = ConnectedUsers.First(i => i.Key.Username == user);
             if (usr.Key != null)
                 ConnectedUsers.Remove(usr.Key);
         }
@@ -142,7 +139,7 @@ namespace Server
         {
             if (ConnectedUsers.ContainsKey(user))
             {
-               // ConnectedUsers[user].Dispose(); //close the stream
+                // ConnectedUsers[user].Dispose(); //close the stream
                 ConnectedUsers.Remove(user);
             }
             UpdateAllConnectedUsersWithNewUser(user, false);
@@ -155,15 +152,14 @@ namespace Server
         /// <param name="count"></param>
         /// <param name="sourceUser"></param>
         /// <param name="targetUser"></param>
-        /// <param name="flag"></param>
-        public void SendMessage(byte[] message, int count, string sourceUser, string targetUser, bool flag)
+        public void SendMessage(byte[] message, int count, string sourceUser, string targetUser)
         {
-            foreach (var Item in ConnectedUsers)
+            foreach (KeyValuePair<User, ConcurrentStreamWriter> Item in ConnectedUsers)
             {
-                User user = (User)Item.Key;
+                User user = Item.Key;
                 if (user.Username == targetUser)
                 {
-                    ConcurrentStreamWriter broadcastSocket = (ConcurrentStreamWriter)Item.Value;
+                    ConcurrentStreamWriter broadcastSocket = Item.Value;
                     using (MemoryStream mem = new MemoryStream())
                     {
                         using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
@@ -189,9 +185,9 @@ namespace Server
         /// <returns></returns>
         public bool IsUsedLoggedIn(string userName)
         {
-            foreach (var client in ConnectedUsers)
+            foreach (KeyValuePair<User, ConcurrentStreamWriter> client in ConnectedUsers)
             {
-                User user = (User)client.Key;
+                User user = client.Key;
                 if (user.Username == userName)
                     return true;
             }
@@ -204,24 +200,22 @@ namespace Server
         /// <param name="userName"></param>
         private void UpdateUserWithConnectedUsersList(ConcurrentStreamWriter newClient, string userName)
         {
-            foreach (var client in ConnectedUsers)
+            foreach (KeyValuePair<User, ConcurrentStreamWriter> client in ConnectedUsers)
             {
-                User user = (User)client.Key;
+                User user = client.Key;
                 if (user.Username != userName)
                 {
                     Console.WriteLine("Updating user with: " + user.Username);
-                    using (MemoryStream mem = new MemoryStream())
+                    using MemoryStream mem = new MemoryStream();
+                    using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
                     {
-                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
-                        {
-                            int OpCode = 1;
-                            writer.Write(OpCode);
-                            writer.Write(user.Username);
-                            writer.Write(user.PublicKey);
-                            writer.Write(Name);
-                        }
-                        newClient.Write(mem.ToArray());
+                        int OpCode = 1;
+                        writer.Write(OpCode);
+                        writer.Write(user.Username);
+                        writer.Write(user.PublicKey);
+                        writer.Write(Name);
                     }
+                    newClient.Write(mem.ToArray());
                 }
             }
         }
@@ -234,26 +228,24 @@ namespace Server
         public void UpdateAllConnectedUsersWithNewUser(User user, bool status)
         {
             //if preexisting client,
-            foreach (var client in ConnectedUsers)
+            foreach (KeyValuePair<User, ConcurrentStreamWriter> client in ConnectedUsers)
             {
-                User endUser = (User)client.Key;
+                User endUser = client.Key;
                 if (endUser.Username != user.Username)
                 {
                     Console.WriteLine("Updating " + endUser.Username + "  with: " + user.Username);
-                    ConcurrentStreamWriter broadcastStream = (ConcurrentStreamWriter)client.Value;
-                    using (MemoryStream mem = new MemoryStream())
+                    ConcurrentStreamWriter broadcastStream = client.Value;
+                    using MemoryStream mem = new MemoryStream();
+                    using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
                     {
-                        using (BinaryWriter writer = new BinaryWriter(mem, Encoding.UTF8, true))
-                        {
-                            int OpCode = 2;
-                            writer.Write(OpCode);
-                            writer.Write(user.Username);
-                            writer.Write(user.PublicKey);
-                            writer.Write(status);
-                            writer.Write(Name);
-                        }
-                        broadcastStream.Write(mem.ToArray());
+                        int OpCode = 2;
+                        writer.Write(OpCode);
+                        writer.Write(user.Username);
+                        writer.Write(user.PublicKey);
+                        writer.Write(status);
+                        writer.Write(Name);
                     }
+                    broadcastStream.Write(mem.ToArray());
                 }
             }
 

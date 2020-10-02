@@ -1,41 +1,46 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
-using System.Collections;
-using System.IO;
-using System.Xml;
-using System.Xml.Serialization;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Collections.Generic;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace Server
 {
-    class Program
+    internal class Program
     {
         //Hashtable of all client sockets
         //public static Dictionary<User, SslStream> ClientList = new Dictionary<User,SslStream>(); // Global Chat Room
         public static Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
         //Directory of server certificate used in SSL authentication
-        private static readonly string ServerCertificateFile = "./Cert/server.pfx";
-        private static readonly string ServerCertificatePassword = null;
-        static void Main(string[] args)
+        private static readonly string _serverCertificateFile = "./Cert/server.pfx";
+        private static readonly string _serverCertificatePassword = null;
+
+        private static void Main(string[] args)
         {
+            if (args is null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
             TcpListener server = null;
             TcpClient clientSocket = null;
             try
             {
                 //read from the file
-                var serverCertificate = new X509Certificate2(ServerCertificateFile, ServerCertificatePassword);
+                X509Certificate2 serverCertificate = new X509Certificate2(_serverCertificateFile, _serverCertificatePassword);
                 // Set the TcpListener on port 43594 at localhost.
-                Int32 port = 43594;
+                int port = 43594;
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
                 server = new TcpListener(localAddr, port);
                 //Creates a socket for client communication
-                clientSocket = default(TcpClient);
+                clientSocket = default;
                 // Start listening for client requests.
                 server.Start();
                 Console.WriteLine("TcpListener Started.");
@@ -86,13 +91,12 @@ namespace Server
                         SerializeObject<User>(user, "./Users/" + userName + ".xml");
                     }
 
-                    Room r;
                     if (!ComparePasswords(user.Password, password))
                     {
                         authResult = false;
                         authMessage = "Your password or username is incorrect.";
                     }
-                    else if (Rooms.TryGetValue(chatRoom, out r))
+                    else if (Rooms.TryGetValue(chatRoom, out Room r))
                     {
                         if (r.IsUsedLoggedIn(userName))
                         {
@@ -114,7 +118,8 @@ namespace Server
                         writer.Write(authMessage);
                         writer.Close();
                         sslStream.Close();
-                    } else
+                    }
+                    else
                     {
                         BinaryWriter writer = new BinaryWriter(sslStream);
                         writer.Write(authResult);
@@ -149,7 +154,7 @@ namespace Server
         /// <param name="chain"></param>
         /// <param name="sslPolicyErrors"></param>
         /// <returns></returns>
-        private static bool App_CertificateValidation(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static bool App_CertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
             if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors) { return true; } //we don't have a proper certificate tree, as we are using a test certificate
@@ -176,12 +181,10 @@ namespace Server
                 {
                     //generate random salt by using cryptographic random number generator
                     randomBytes.GetBytes(salt);
-                    using (var hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000))
-                    {
-                        key = hashBytes.GetBytes(20);
-                        Buffer.BlockCopy(salt, 0, ret, 0, 20);
-                        Buffer.BlockCopy(key, 0, ret, 20, 20);
-                    }
+                    using Rfc2898DeriveBytes hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000);
+                    key = hashBytes.GetBytes(20);
+                    Buffer.BlockCopy(salt, 0, ret, 0, 20);
+                    Buffer.BlockCopy(key, 0, ret, 20, 20);
                 }
                 // returns salt/key pair
                 return Convert.ToBase64String(ret);
@@ -217,7 +220,7 @@ namespace Server
                 Buffer.BlockCopy(hash, 0, salt, 0, 20);
                 Buffer.BlockCopy(hash, 20, key, 0, 20);
 
-                using (var hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000))
+                using (Rfc2898DeriveBytes hashBytes = new Rfc2898DeriveBytes(Password, salt, 10000))
                 {
                     byte[] newKey = hashBytes.GetBytes(20);
                     if (newKey != null)
@@ -244,8 +247,10 @@ namespace Server
         /// <returns></returns>
         public static string GenerateKeyPair(string userName)
         {
-            RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048);
-            rsa.PersistKeyInCsp = false;
+            RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048)
+            {
+                PersistKeyInCsp = false
+            };
             string publicPrivateKeyXML = rsa.ToXmlString(true);
             string publicOnlyKeyXML = rsa.ToXmlString(false);
             //File.WriteAllText("./PublicKeys/" + userName + "_publicKey.txt", publicOnlyKeyXML); // not used
@@ -267,14 +272,12 @@ namespace Server
             {
                 XmlDocument xmlDocument = new XmlDocument();
                 XmlSerializer serializer = new XmlSerializer(serializableObject.GetType());
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    serializer.Serialize(stream, serializableObject);
-                    stream.Position = 0;
-                    xmlDocument.Load(stream);
-                    xmlDocument.Save(fileName);
-                    stream.Close();
-                }
+                using MemoryStream stream = new MemoryStream();
+                serializer.Serialize(stream, serializableObject);
+                stream.Position = 0;
+                xmlDocument.Load(stream);
+                xmlDocument.Save(fileName);
+                stream.Close();
             }
             catch (Exception ex)
             {
@@ -291,9 +294,9 @@ namespace Server
         /// <returns></returns>
         public static T DeSerializeObject<T>(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName)) { return default(T); }
+            if (string.IsNullOrEmpty(fileName)) { return default; }
 
-            T objectOut = default(T);
+            T objectOut = default;
 
             try
             {
@@ -301,19 +304,17 @@ namespace Server
                 xmlDocument.Load(fileName);
                 string xmlString = xmlDocument.OuterXml;
 
-                using (StringReader read = new StringReader(xmlString))
+                using StringReader read = new StringReader(xmlString);
+                Type outType = typeof(T);
+
+                XmlSerializer serializer = new XmlSerializer(outType);
+                using (XmlReader reader = new XmlTextReader(read))
                 {
-                    Type outType = typeof(T);
-
-                    XmlSerializer serializer = new XmlSerializer(outType);
-                    using (XmlReader reader = new XmlTextReader(read))
-                    {
-                        objectOut = (T)serializer.Deserialize(reader);
-                        reader.Close();
-                    }
-
-                    read.Close();
+                    objectOut = (T)serializer.Deserialize(reader);
+                    reader.Close();
                 }
+
+                read.Close();
             }
             catch (Exception ex)
             {

@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Threading;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Security;
-using System.Collections.Generic;
+using System.Threading;
 
 namespace Server
 {
@@ -12,13 +12,13 @@ namespace Server
         private SslStream ClientSocket { get; set; }
         private ConcurrentStreamWriter ClientSocketWriter { get; set; }
         private User User { get; set; }
-        private List<string> connectedRooms { get; set; }
+        private List<string> ConnectedRooms { get; set; }
         public ClientHandler(SslStream client, User user)//, string roomName)
         {
             ClientSocket = client;
             ClientSocketWriter = new ConcurrentStreamWriter(client);
             User = user;
-            connectedRooms = new List<string>();
+            ConnectedRooms = new List<string>();
             //RoomName = roomName;
         }
         /// <summary>
@@ -41,7 +41,7 @@ namespace Server
                 Program.Rooms.Add(chatRoom, room);
                 room.Join(User, ClientSocketWriter);
             }
-            connectedRooms.Add(chatRoom);
+            ConnectedRooms.Add(chatRoom);
         }
         public enum Opcode
         {
@@ -72,7 +72,7 @@ namespace Server
                             {
                                 bool hasJoined = Program.Rooms[chatRoom].Join(User, ClientSocketWriter);
                                 if (hasJoined)
-                                    connectedRooms.Add(chatRoom);
+                                    ConnectedRooms.Add(chatRoom);
                             }
                             else
                             {
@@ -80,7 +80,7 @@ namespace Server
                                 Program.Rooms.Add(chatRoom, room);
                                 bool hasJoined = room.Join(User, ClientSocketWriter);
                                 if (hasJoined)
-                                    connectedRooms.Add(chatRoom);
+                                    ConnectedRooms.Add(chatRoom);
                             }
                             break;
                         case Opcode.Leave:
@@ -90,12 +90,12 @@ namespace Server
                             string userName = reader.ReadString();
                             int count = reader.ReadInt32();
                             byte[] encryptedMessage = reader.ReadBytes(count);
-                            Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName, false);
+                            Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName);
                             break;
                         case Opcode.AddUser:
                             string user = reader.ReadString();
                             chatRoom = reader.ReadString();
-                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username)) 
+                            if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
                                 Program.Rooms[chatRoom].AllowedUsers.Add(user);
                             break;
                         case Opcode.KickUser:
@@ -129,11 +129,11 @@ namespace Server
             }
             finally //finally is used because we always want the connections to be closed after the infinite while loops exits.
             {
-               // Program.UpdateAllConnectedUsersWithNewUser(User, false);
-               if(connectedRooms != null)
-                   foreach(string roomName in connectedRooms)
+                // Program.UpdateAllConnectedUsersWithNewUser(User, false);
+                if (ConnectedRooms != null)
+                    foreach (string roomName in ConnectedRooms)
                         Program.Rooms[roomName].Leave(User);
-                if(reader != null)
+                if (reader != null)
                     reader.Close();
                 ClientSocketWriter.Dispose();
                 ClientSocket.Close();
