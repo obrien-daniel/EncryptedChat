@@ -19,8 +19,8 @@ namespace Server
         //public static Dictionary<User, SslStream> ClientList = new Dictionary<User,SslStream>(); // Global Chat Room
         public static Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
         //Directory of server certificate used in SSL authentication
-        private static readonly string ServerCertificateFile = "./Cert/server.pfx";
-        private static readonly string ServerCertificatePassword = null;
+        private static readonly string _serverCertificateFile = "./Cert/server.pfx";
+        private static readonly string _serverCertificatePassword = null;
 
         private static void Main(string[] args)
         {
@@ -29,7 +29,7 @@ namespace Server
             try
             {
                 //read from the file
-                X509Certificate2 serverCertificate = new X509Certificate2(ServerCertificateFile, ServerCertificatePassword);
+                X509Certificate2 serverCertificate = new X509Certificate2(_serverCertificateFile, _serverCertificatePassword);
                 // Set the TcpListener on port 43594 at localhost.
                 int port = 43594;
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");

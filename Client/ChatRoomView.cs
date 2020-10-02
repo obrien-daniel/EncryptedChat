@@ -6,10 +6,10 @@ namespace Client
 {
     public class ChatRoomView : INotifyPropertyChanged
     {
-        private string name;
-        public string Name { get => name; set { name = value; OnPropertyChanged(); } }
-        private string message;
-        public string Message { get => message; set { message = value; OnPropertyChanged(); } }
+        private string _name;
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        private string _message;
+        public string Message { get => _message; set { _message = value; OnPropertyChanged(); } }
         public BindingList<Message> Messages { get; set; }
         //Binding list containing all connected users on the server
         public BindingList<User> Users { get; set; }

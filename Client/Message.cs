@@ -14,11 +14,11 @@ namespace Client
         public string Sender { get; set; }
         public DateTime DateTimeStamp { get; set; }
         public string EncryptedMessage { get; set; }
-        private byte[] encryptedSymmetrickey;
-        private byte[] encryptedIV;
+        private byte[] _encryptedSymmetrickey;
+        private byte[] _encryptedIV;
         [NonSerialized]
-        private string decryptedMessage;
-        public string DecryptedMessage { get => decryptedMessage; set => decryptedMessage = value; }
+        private string _decryptedMessage;
+        public string DecryptedMessage { get => _decryptedMessage; set => _decryptedMessage = value; }
         public string Font { get; set; }
         public string FontColor { get; set; }
         public int FontSize { get; set; }
@@ -57,20 +57,20 @@ namespace Client
                     }
                 }
                 // Encrypt key and initialization vector
-                encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
-                encryptedIV = RSAEncrypt(rijAlg.IV);
+                _encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
+                _encryptedIV = RSAEncrypt(rijAlg.IV);
             }
         }
         public void Decrypt(string privateKey)
         {
             if (EncryptedMessage == null || EncryptedMessage.Length <= 0)
                 return;
-            if (encryptedSymmetrickey == null || encryptedSymmetrickey.Length <= 0)
+            if (_encryptedSymmetrickey == null || _encryptedSymmetrickey.Length <= 0)
                 throw new ArgumentNullException("Key");
-            if (encryptedIV == null || encryptedIV.Length <= 0)
+            if (_encryptedIV == null || _encryptedIV.Length <= 0)
                 throw new ArgumentNullException("IV");
-            byte[] key = RSADecrypt(encryptedSymmetrickey, privateKey);
-            byte[] IV = RSADecrypt(encryptedIV, privateKey);
+            byte[] key = RSADecrypt(_encryptedSymmetrickey, privateKey);
+            byte[] IV = RSADecrypt(_encryptedIV, privateKey);
             // Create an Rijndael object  with the specified key and IV.
             using (Rijndael rijAlg = Rijndael.Create())
             {

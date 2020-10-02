@@ -21,17 +21,17 @@ namespace Client
     public partial class MainWindow : Window
     {
         //Server certificate name
-        private static readonly string ServerCertificateName = "MyServer";
+        private static readonly string _serverCertificateName = "MyServer";
         //Directory of client certificate used in SSL authentication
-        private static readonly string ClientCertificateFile = "./Cert/client.pfx";
-        private static readonly string ClientCertificatePassword = null;
-        private TcpClient client = new TcpClient();
-        private SslStream sslStream = null;
-        private BackgroundWorker backgroundWorker = null;
-        private string serverIP = string.Empty;
-        private int port = 0;
-        private string connectedUser = string.Empty;
-        private User currentUser;
+        private static readonly string _clientCertificateFile = "./Cert/client.pfx";
+        private static readonly string _clientCertificatePassword = null;
+        private TcpClient _client = new TcpClient();
+        private SslStream _sslStream = null;
+        private BackgroundWorker _backgroundWorker = null;
+        private string _serverIP = string.Empty;
+        private int _port = 0;
+        private string _connectedUser = string.Empty;
+        private User _currentUser;
 
         public ObservableCollection<ChatRoomView> Tabs { get; set; }
 
@@ -64,7 +64,7 @@ namespace Client
         {
             try
             {
-                BinaryReader reader = new BinaryReader(sslStream);
+                BinaryReader reader = new BinaryReader(_sslStream);
                 int OpCode = reader.ReadInt32();
 
                 Console.WriteLine("reading opcode: " + OpCode);
@@ -136,7 +136,7 @@ namespace Client
                     string username = reader.ReadString();
                     int count = reader.ReadInt32();
                     byte[] encryptedMessage = reader.ReadBytes(count);
-                    string privateKey = File.ReadAllText(@"..\..\..\..\Server\bin\Debug\netcoreapp3.1\PrivateKeys\" + connectedUser + "_privateKey.txt"); // dir for when running in visual studio
+                    string privateKey = File.ReadAllText(@"..\..\..\..\Server\bin\Debug\netcoreapp3.1\PrivateKeys\" + _connectedUser + "_privateKey.txt"); // dir for when running in visual studio
                     //string privateKey = File.ReadAllText("./PrivateKeys/" + connectedUser + "_privateKey.txt"); //dir for when running release with client and server in same dir
                     Message message = (Message)Deserialize(encryptedMessage);
                     message.Decrypt(privateKey);
@@ -165,9 +165,9 @@ namespace Client
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void bgCheck_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private void BgCheck_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (client.Connected)
+            if (_client.Connected)
             {
                 /*listBox.ItemsSource = null;
                 lock (_syncLock)
@@ -208,7 +208,7 @@ namespace Client
                     }
                 }
                 // Continue listening on server stream
-                backgroundWorker.RunWorkerAsync();
+                _backgroundWorker.RunWorkerAsync();
             }
             else
             {
@@ -235,7 +235,7 @@ namespace Client
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void buttonSend_Click(object sender, RoutedEventArgs e)
+        private void ButtonSend_Click(object sender, RoutedEventArgs e)
         {
             //TabItem ti = (TabItem)tabControl.SelectedItem;
             //var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString());
@@ -245,13 +245,13 @@ namespace Client
             Console.WriteLine("Click: " + tab.Name);
             try
             {
-                if (client.Connected)
+                if (_client.Connected)
                 {
-                    BinaryWriter writer = new BinaryWriter(sslStream);
+                    BinaryWriter writer = new BinaryWriter(_sslStream);
                     foreach (User user in tab.Users)
                     {
                         Console.WriteLine("Sending message to: " + user.UserName);
-                        Message message = new Message(currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
+                        Message message = new Message(_currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
                         message.Encrypt();
                         byte[] encryptedMessage = Serialize(message);
                         int count = encryptedMessage.Count();
@@ -263,7 +263,7 @@ namespace Client
                         writer.Flush();
                     }
 
-                    tab.Messages.Add(new Message(currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString()));
+                    tab.Messages.Add(new Message(_currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString()));
                     tab.Message = string.Empty;
                     // textBox.Clear();
                 }
@@ -280,7 +280,7 @@ namespace Client
             }
 
         }
-        private void scrollViewer_Changed(object sender, ScrollChangedEventArgs e)
+        private void ScrollViewer_Changed(object sender, ScrollChangedEventArgs e)
         {
             ScrollViewer scrollViewer = sender as ScrollViewer;
             if (e.ExtentHeightChange != 0)
@@ -292,7 +292,7 @@ namespace Client
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void buttonConnect_Click(object sender, RoutedEventArgs e)
+        private void ButtonConnect_Click(object sender, RoutedEventArgs e)
         {
             /*
             TabItem ti = (TabItem)tabControl.SelectedItem;
@@ -301,28 +301,28 @@ namespace Client
             try
             {
                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, "Connecting to Server...", "Connecting to Server...", Brushes.Blue.ToString()));
-                serverIP = textBoxIP.Text;
-                port = Convert.ToInt32(textBoxPort.Text);
-                client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
-                client.Connect(serverIP, port);
+                _serverIP = textBoxIP.Text;
+                _port = Convert.ToInt32(textBoxPort.Text);
+                _client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
+                _client.Connect(_serverIP, _port);
 
-                X509Certificate2 clientCertificate = new X509Certificate2(ClientCertificateFile, ClientCertificatePassword);
+                X509Certificate2 clientCertificate = new X509Certificate2(_clientCertificateFile, _clientCertificatePassword);
                 X509CertificateCollection clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
 
                 //creates an SSL Stream that contains the TCP client socket as the underlying stream.
-                sslStream = new SslStream(client.GetStream(), false, App_CertificateValidation);
+                _sslStream = new SslStream(_client.GetStream(), false, App_CertificateValidation);
                 Console.WriteLine("Client connected.");
-                sslStream.AuthenticateAsClient(ServerCertificateName, clientCertificateCollection, SslProtocols.Tls12, false);
+                _sslStream.AuthenticateAsClient(_serverCertificateName, clientCertificateCollection, SslProtocols.Tls12, false);
                 Console.WriteLine("SSL authentication completed.");
                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Authenticating User...", Brushes.Blue.ToString()));
                 // Send username and password to sever for authentication
-                BinaryWriter writer = new BinaryWriter(sslStream);
+                BinaryWriter writer = new BinaryWriter(_sslStream);
                 writer.Write(textBoxUsername.Text);
                 writer.Write(passwordBox.Password);
                 writer.Write("Global"); // Chat group name sent
                 writer.Flush();
                 // Receieve response from server about authentication
-                BinaryReader reader = new BinaryReader(sslStream);
+                BinaryReader reader = new BinaryReader(_sslStream);
                 bool result = reader.ReadBoolean();
                 string response = reader.ReadString();
                 Console.WriteLine("Finished reading." + response);
@@ -330,22 +330,22 @@ namespace Client
                 {
                     tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, response, Brushes.Red.ToString()));
                     writer.Close();
-                    sslStream.Close();
+                    _sslStream.Close();
                     DropClient();
                 }
                 else
                 {
-                    currentUser = new User(textBoxUsername.Text, null);
+                    _currentUser = new User(textBoxUsername.Text, null);
                     buttonDisconnect.IsEnabled = true;
                     //buttonSend.IsEnabled = true;
                     buttonConnect.IsEnabled = false;
-                    connectedUser = textBoxUsername.Text;
+                    _connectedUser = textBoxUsername.Text;
                     tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Connected to Server: " + textBoxIP.Text, Brushes.Blue.ToString()));
-                    backgroundWorker = new BackgroundWorker();
+                    _backgroundWorker = new BackgroundWorker();
                     Console.WriteLine("Starting background worker listener");
-                    backgroundWorker.DoWork += ServerListener;
-                    backgroundWorker.RunWorkerCompleted += bgCheck_RunWorkerCompleted;
-                    backgroundWorker.RunWorkerAsync();
+                    _backgroundWorker.DoWork += ServerListener;
+                    _backgroundWorker.RunWorkerCompleted += BgCheck_RunWorkerCompleted;
+                    _backgroundWorker.RunWorkerAsync();
                 }
             }
             catch (Exception ex)
@@ -354,7 +354,7 @@ namespace Client
                 DropClient();
             }
         }
-        private void tabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void TabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
 
@@ -378,7 +378,7 @@ namespace Client
                         Tabs.Insert(Tabs.Count - 1, newTab);
                         tabControl.ItemsSource = Tabs;
                         tabControl.SelectedItem = newTab;
-                        BinaryWriter writer = new BinaryWriter(sslStream);
+                        BinaryWriter writer = new BinaryWriter(_sslStream);
                         writer.Write((int)Opcode.Join);
                         writer.Write(name);
                         writer.Flush();
@@ -432,8 +432,8 @@ namespace Client
         /// </summary>
         private void DropClient()
         {
-            client.Close();
-            sslStream.Close();
+            _client.Close();
+            _sslStream.Close();
             // SEND TO ALL TABS
             foreach (ChatRoomView tab in Tabs)
             {
@@ -454,7 +454,7 @@ namespace Client
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void buttonDisconnect_Click(object sender, RoutedEventArgs e)
+        private void ButtonDisconnect_Click(object sender, RoutedEventArgs e)
         {
             DropClient();
         }
