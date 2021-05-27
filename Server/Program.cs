@@ -20,7 +20,7 @@ namespace Server
         public static Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
 
         //Directory of server certificate used in SSL authentication
-        private static readonly string _serverCertificateFile = "./Cert/server.pfx";
+        private static readonly string _serverCertificateFile = "./Cert/server_ssl.pfx";
 
         private static readonly string _serverCertificatePassword = null;
 
@@ -74,10 +74,8 @@ namespace Server
                     string chatRoom = reader.ReadString();
                     bool authResult = false;
                     string authMessage = string.Empty;
-                    //create folders if they don't exist
+                    //create folder if it doesn't exist
                     Directory.CreateDirectory("./Users");
-                    //Directory.CreateDirectory("./PublicKeys"); //Not used
-                    Directory.CreateDirectory("./PrivateKeys");
                     User user = new User();
                     if (File.Exists("./Users/" + userName + ".xml")) //load user info if user exists
                     {
@@ -88,7 +86,6 @@ namespace Server
                         user.Username = userName;
                         string saltedHashPassword = GenerateKeyHash(password);
                         user.Password = saltedHashPassword;
-                        user.PublicKey = GenerateKeyPair(userName);
                         SerializeObject<User>(user, "./Users/" + userName + ".xml");
                     }
 
@@ -105,7 +102,9 @@ namespace Server
                             authMessage = "You are already logged in.";
                         }
                         else
+                        {
                             authResult = true;
+                        }
                     }
                     else
                     {
@@ -126,6 +125,7 @@ namespace Server
                         writer.Write(authResult);
                         writer.Write(authMessage);
                         Console.WriteLine(user.Username + " has connected from: " + clientIP);
+                        user.PublicKey = reader.ReadString();
                         ClientHandler client = new ClientHandler(sslStream, user);
                         client.Start();
                     }
@@ -225,8 +225,12 @@ namespace Server
                 {
                     byte[] newKey = hashBytes.GetBytes(20);
                     if (newKey != null)
+                    {
                         if (newKey.SequenceEqual(key))
+                        {
                             return true;
+                        }
+                    }
                 }
                 return false;
             }
@@ -239,24 +243,6 @@ namespace Server
                 if (hash != null)
                     Array.Clear(hash, 0, hash.Length);
             }
-        }
-
-        /// <summary>
-        /// Generates a private and public key pair. This is used just to create test keys.
-        /// </summary>
-        /// <param name="userName"></param>
-        /// <returns></returns>
-        public static string GenerateKeyPair(string userName)
-        {
-            RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048)
-            {
-                PersistKeyInCsp = false
-            };
-            string publicPrivateKeyXML = rsa.ToXmlString(true);
-            string publicOnlyKeyXML = rsa.ToXmlString(false);
-            //File.WriteAllText("./PublicKeys/" + userName + "_publicKey.txt", publicOnlyKeyXML); // not used
-            File.WriteAllText("./PrivateKeys/" + userName + "_privateKey.txt", publicPrivateKeyXML);
-            return publicOnlyKeyXML;
         }
 
         /// <summary>

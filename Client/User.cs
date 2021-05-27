@@ -9,9 +9,10 @@ namespace Client
     [SerializableAttribute]
     public class User
     {
-        private string username;
-        public string UserName { get => username; set => username = value; }
+        private string _username;
+        public string UserName { get => _username; set => _username = value; }
         public string PublicKey { get; set; }
+
         public List<User> Contacts;
 
         public User(string userName, string publicKey)

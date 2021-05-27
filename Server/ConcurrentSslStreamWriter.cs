@@ -40,12 +40,15 @@ namespace Server
 
         public void Write(byte[] data)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("ConcurrentStreamWriter");
+            if (_disposed) throw new ObjectDisposedException("ConcurrentStreamWriter");
 
             lock (_writeBufferLock)
+            {
                 foreach (byte b in data)
+                {
                     _buffer.Add(b);
+                }
+            }
 
             InitFlusher();
         }

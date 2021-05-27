@@ -8,6 +8,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,7 +25,7 @@ namespace Client
         private static readonly string _serverCertificateName = "MyServer";
 
         //Directory of client certificate used in SSL authentication
-        private static readonly string _clientCertificateFile = "./Cert/client.pfx";
+        private static readonly string _clientCertificateFile = "./Cert/client_ssl.pfx";
 
         private static readonly string _clientCertificatePassword = null;
         private TcpClient _client = new TcpClient();
@@ -32,7 +33,6 @@ namespace Client
         private BackgroundWorker _backgroundWorker = null;
         private string _serverIP = string.Empty;
         private int _port = 0;
-        private string _connectedUser = string.Empty;
         private User _currentUser;
 
         public ObservableCollection<ChatRoomView> Tabs { get; set; }
@@ -52,6 +52,11 @@ namespace Client
             //tabControl
         }
 
+        public enum ServerOpcode
+        {
+            GetUsers, UpdateUser, UserMessage, SystemMessage
+        }
+
         /// <summary>
         /// Listens for any communication from the server.
         /// Three opcodes are used for communication from the server.
@@ -69,7 +74,7 @@ namespace Client
                 int OpCode = reader.ReadInt32();
 
                 Console.WriteLine("reading opcode: " + OpCode);
-                if (OpCode == 1) //update entire user list, occurs on client/server connection
+                if (OpCode == (int)ServerOpcode.GetUsers)
                 {
                     Console.WriteLine("OPCODE 2 HAS BEEN ACCEPTED");
                     string userName = reader.ReadString();
@@ -87,7 +92,7 @@ namespace Client
                     }
                     e.Result = null; //no message is passed on to UI
                 }
-                else if (OpCode == 2) //Update user list, occurs whenever a user connects/disconnects
+                else if (OpCode == (int)ServerOpcode.UpdateUser)
                 {
                     Console.WriteLine("OPCODE 2 HAS BEEN ACCEPTED");
                     string userName = reader.ReadString(); //username of other client
@@ -130,21 +135,19 @@ namespace Client
                     }
                     e.Result = new Tuple<string, string>(chatRoom, message); //pass on message to UI
                 }
-                else if (OpCode == 3) //new message
+                else if (OpCode == (int)ServerOpcode.UserMessage)
                 {
                     string chatRoom = reader.ReadString();
                     string username = reader.ReadString();
                     int count = reader.ReadInt32();
                     byte[] encryptedMessage = reader.ReadBytes(count);
-                    string privateKey = File.ReadAllText(@"..\..\..\..\Server\bin\Debug\netcoreapp3.1\PrivateKeys\" + _connectedUser + "_privateKey.txt"); // dir for when running in visual studio
-                    //string privateKey = File.ReadAllText("./PrivateKeys/" + connectedUser + "_privateKey.txt"); //dir for when running release with client and server in same dir
                     Message message = (Message)Deserialize(encryptedMessage);
-                    message.Decrypt(privateKey);
+                    message.Decrypt();
                     //string decryptedMessage = RSADecrypt(encryptedMessage, privateKey);
                     //string message = username + ": " + decryptedMessage;
                     e.Result = message; //pass on message to UI
                 }
-                else if (OpCode == 4) //System message
+                else if (OpCode == (int)ServerOpcode.SystemMessage) //System message
                 {
                     string chatRoom = reader.ReadString();
                     string message = reader.ReadString();
@@ -284,7 +287,9 @@ namespace Client
         {
             ScrollViewer scrollViewer = sender as ScrollViewer;
             if (e.ExtentHeightChange != 0)
+            {
                 scrollViewer.ScrollToVerticalOffset(scrollViewer.ExtentHeight);
+            }
         }
 
         /// <summary>
@@ -307,40 +312,44 @@ namespace Client
                 _client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
                 _client.Connect(_serverIP, _port);
 
-                var clientCertificate = new X509Certificate2(_clientCertificateFile, _clientCertificatePassword);
-                var clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
+                var clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { new X509Certificate2(_clientCertificateFile, _clientCertificatePassword) });
 
                 //creates an SSL Stream that contains the TCP client socket as the underlying stream.
                 _sslStream = new SslStream(_client.GetStream(), false, App_CertificateValidation);
-                Console.WriteLine("Client connected.");
                 _sslStream.AuthenticateAsClient(_serverCertificateName, clientCertificateCollection, SslProtocols.Tls12, false);
-                Console.WriteLine("SSL authentication completed.");
+
                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Authenticating User...", Brushes.Blue.ToString()));
+
                 // Send username and password to sever for authentication
-                BinaryWriter writer = new BinaryWriter(_sslStream);
+                var writer = new BinaryWriter(_sslStream);
                 writer.Write(textBoxUsername.Text);
                 writer.Write(passwordBox.Password);
                 writer.Write("Global"); // Chat group name sent
                 writer.Flush();
+
                 // Receieve response from server about authentication
-                BinaryReader reader = new BinaryReader(_sslStream);
+                var reader = new BinaryReader(_sslStream);
                 bool result = reader.ReadBoolean();
                 string response = reader.ReadString();
-                Console.WriteLine("Finished reading." + response);
+
                 if (result == false)
                 {
                     tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, response, Brushes.Red.ToString()));
-                    writer.Close();
                     _sslStream.Close();
+                    writer.Close();
                     DropClient();
                 }
                 else
                 {
                     _currentUser = new User(textBoxUsername.Text, null);
+                    _currentUser.PublicKey = GetOrGenerateKeyPair(_currentUser.UserName);
+
+                    // send public key
+                    writer.Write(_currentUser.PublicKey);
+                    writer.Flush();
+
                     buttonDisconnect.IsEnabled = true;
-                    //buttonSend.IsEnabled = true;
                     buttonConnect.IsEnabled = false;
-                    _connectedUser = textBoxUsername.Text;
                     tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "Connected to Server: " + textBoxIP.Text, Brushes.Blue.ToString()));
                     _backgroundWorker = new BackgroundWorker();
                     Console.WriteLine("Starting background worker listener");
@@ -356,6 +365,23 @@ namespace Client
             }
         }
 
+        /// <summary>
+        /// Retrieves the key pair public key from the windows cryptographic store. If the key pair does not exist, it generates a new one.
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <returns>public key</returns>
+        private string GetOrGenerateKeyPair(string userName)
+        {
+            var parameters = new CspParameters
+            {
+                KeyContainerName = $"{userName}_keyContainer"
+            };
+
+            using var rsa = new RSACryptoServiceProvider(2048, parameters);
+
+            return rsa.ToXmlString(false);
+        }
+
         private void TabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (tabControl.SelectedItem is ChatRoomView tab && tab.Name != null)
@@ -366,7 +392,9 @@ namespace Client
                     popup.ShowDialog();
                     string name;
                     if (popup.Canceled == true)
+                    {
                         return;
+                    }
                     else
                     {
                         string result = popup.RoomName;

@@ -13,8 +13,8 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Button Name="buttnOk" Content="OK" Grid.Column="0" Margin="0,0,5,0" Padding="8" Click="buttnOk_Click" />
-            <Button Name="buttonCancel" Content="Cancel" Grid.Column="1" Margin="5,0,0,0" Padding="8" Click="buttonCancel_Click" />
+            <Button Name="buttnOk" Content="OK" Grid.Column="0" Margin="0,0,5,0" Padding="8" Click="ButtnOk_Click" />
+            <Button Name="buttonCancel" Content="Cancel" Grid.Column="1" Margin="5,0,0,0" Padding="8" Click="ButtonCancel_Click" />
         </Grid>
     </StackPanel>
 </Window>

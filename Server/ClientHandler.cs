@@ -14,7 +14,7 @@ namespace Server
         private User User { get; set; }
         private List<string> ConnectedRooms { get; set; }
 
-        public ClientHandler(SslStream client, User user)//, string roomName)
+        public ClientHandler(SslStream client, User user)
         {
             ClientSocket = client;
             ClientSocketWriter = new ConcurrentStreamWriter(client);
@@ -140,10 +140,17 @@ namespace Server
             {
                 // Program.UpdateAllConnectedUsersWithNewUser(User, false);
                 if (ConnectedRooms != null)
+                {
                     foreach (string roomName in ConnectedRooms)
+                    {
                         Program.Rooms[roomName].Leave(User);
+                    }
+                }
+
                 if (reader != null)
+                {
                     reader.Close();
+                }
                 ClientSocketWriter.Dispose();
                 ClientSocket.Close();
             }

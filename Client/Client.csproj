@@ -6,7 +6,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <None Update="Cert\client.pfx">
+    <None Update="Cert\client_ssl.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <AppDesigner Include="Properties\" />

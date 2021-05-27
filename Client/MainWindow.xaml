@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
-        Title="Chat Client" Height="570" Width="489.66">
+        Title="Ch
+
+        at Client" Height="570" Width="489.66">
     <Grid Margin="0,0,0.2,-3.4">
 
         <TextBox x:Name="textBoxUsername" HorizontalAlignment="Left" Height="24" Margin="115,24,0,0" TextWrapping="Wrap" Text="Daniel" VerticalAlignment="Top" Width="109" />

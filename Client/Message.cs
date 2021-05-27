@@ -7,7 +7,7 @@ namespace Client
     /// <summary>
     /// This class creates a message with the user it was sent from and the message settings.
     /// </summary>
-    [SerializableAttribute]
+    [Serializable]
     public class Message
     {
         public User User { get; set; }
@@ -26,24 +26,21 @@ namespace Client
         public string FontColor { get; set; }
         public int FontSize { get; set; }
 
-        public Message(string Sender, string Chatroom, User User, DateTime DateTimeStamp, string EncryptedMessage, string DecryptedMessage, string FontColor)
+        public Message(string sender, string chatroom, User user, DateTime dateTimeStamp, string encryptedMessage, string decryptedMessage, string fontColor)
         {
-            if (Sender == null)
-                this.Sender = "SYSTEM";
-            else
-                this.Sender = Sender;
-            this.Chatroom = Chatroom;
-            this.User = User;
-            this.DateTimeStamp = DateTimeStamp;
-            this.EncryptedMessage = EncryptedMessage;
-            this.DecryptedMessage = DecryptedMessage;
-            this.FontColor = FontColor;
+            Sender = sender ?? "SYSTEM";
+            Chatroom = chatroom;
+            User = user;
+            DateTimeStamp = dateTimeStamp;
+            EncryptedMessage = encryptedMessage;
+            DecryptedMessage = decryptedMessage;
+            FontColor = fontColor;
         }
 
         public void Encrypt()
         {
-            if (DecryptedMessage == null || User == null)
-                return;
+            if (DecryptedMessage == null || User == null) return;
+
             using Rijndael rijAlg = Rijndael.Create();
             // Create an encryptor to perform the stream transform.
             ICryptoTransform encryptor = rijAlg.CreateEncryptor(rijAlg.Key, rijAlg.IV);
@@ -62,16 +59,14 @@ namespace Client
             _encryptedIV = RSAEncrypt(rijAlg.IV);
         }
 
-        public void Decrypt(string privateKey)
+        public void Decrypt()
         {
-            if (EncryptedMessage == null || EncryptedMessage.Length <= 0)
-                return;
-            if (_encryptedSymmetrickey == null || _encryptedSymmetrickey.Length <= 0)
-                throw new ArgumentNullException("Key");
-            if (_encryptedIV == null || _encryptedIV.Length <= 0)
-                throw new ArgumentNullException("IV");
-            byte[] key = RSADecrypt(_encryptedSymmetrickey, privateKey);
-            byte[] IV = RSADecrypt(_encryptedIV, privateKey);
+            if (EncryptedMessage == null || EncryptedMessage.Length <= 0) return;
+            if (_encryptedSymmetrickey == null || _encryptedSymmetrickey.Length <= 0) throw new ArgumentNullException("Key");
+            if (_encryptedIV == null || _encryptedIV.Length <= 0) throw new ArgumentNullException("IV");
+
+            byte[] key = RSADecrypt(_encryptedSymmetrickey);
+            byte[] IV = RSADecrypt(_encryptedIV);
             // Create an Rijndael object  with the specified key and IV.
             using Rijndael rijAlg = Rijndael.Create();
             rijAlg.Key = key;
@@ -95,7 +90,7 @@ namespace Client
             {
                 Console.WriteLine("Encrypting " + message.Length + " bytes.");
                 //Create a new instance of RSACryptoServiceProvider.
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
+                var rsa = new RSACryptoServiceProvider(2048);
                 rsa.FromXmlString(User.PublicKey);
                 //Encrypt the passed byte array and specify OAEP padding.
                 return rsa.Encrypt(message, true);
@@ -113,13 +108,17 @@ namespace Client
         /// <param name="message"></param>
         /// <param name="privateKey"></param>
         /// <returns></returns>
-        private byte[] RSADecrypt(byte[] message, string privateKey)
+        private byte[] RSADecrypt(byte[] message)
         {
             try
             {
-                //Create a new instance of RSACryptoServiceProvider.
-                RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-                rsa.FromXmlString(privateKey);
+                var parameters = new CspParameters
+                {
+                    KeyContainerName = $"{User.UserName}_keyContainer"
+                };
+
+                using var rsa = new RSACryptoServiceProvider(2048, parameters);
+
                 //Decrypt the passed byte array and specify OAEP padding.
                 return rsa.Decrypt(message, true);
             }
