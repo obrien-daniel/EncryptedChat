@@ -12,6 +12,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Client
@@ -34,7 +35,6 @@ namespace Client
         private string _serverIP = string.Empty;
         private int _port = 0;
         private User _currentUser;
-
         public ObservableCollection<ChatRoomView> Tabs { get; set; }
 
         public MainWindow()
@@ -239,47 +239,52 @@ namespace Client
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void ButtonSend_Click(object sender, RoutedEventArgs e)
+        /// 
+        private void TextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            //TabItem ti = (TabItem)tabControl.SelectedItem;
-            //var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString());
-            Console.WriteLine("Click: ");
-            ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
-
-            Console.WriteLine("Click: " + tab.Name);
-            try
+            if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
             {
-                if (_client.Connected)
+                e.Handled = true;
+                //TabItem ti = (TabItem)tabControl.SelectedItem;
+                //var tab = Tabs.FirstOrDefault(i => i.Name == ti.Header.ToString());
+                Console.WriteLine("Click: ");
+                ChatRoomView tab = tabControl.SelectedItem as ChatRoomView;
+
+                Console.WriteLine("Click: " + tab.Name);
+                try
                 {
-                    BinaryWriter writer = new BinaryWriter(_sslStream);
-                    foreach (User user in tab.Users)
+                    if (_client.Connected)
                     {
-                        Console.WriteLine("Sending message to: " + user.UserName);
-                        Message message = new Message(_currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
-                        message.Encrypt();
-                        byte[] encryptedMessage = Serialize(message);
-                        int count = encryptedMessage.Count();
-                        writer.Write((int)Opcode.SendMessage);
-                        writer.Write(tab.Name); // add chat room
-                        writer.Write(user.UserName);
-                        writer.Write(count);
-                        writer.Write(encryptedMessage);
-                        writer.Flush();
-                    }
+                        BinaryWriter writer = new BinaryWriter(_sslStream);
+                        foreach (User user in tab.Users)
+                        {
+                            Console.WriteLine("Sending message to: " + user.UserName);
+                            Message message = new Message(_currentUser.UserName, tab.Name, user, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString());
+                            message.Encrypt();
+                            byte[] encryptedMessage = Serialize(message);
+                            int count = encryptedMessage.Count();
+                            writer.Write((int)Opcode.SendMessage);
+                            writer.Write(tab.Name); // add chat room
+                            writer.Write(user.UserName);
+                            writer.Write(count);
+                            writer.Write(encryptedMessage);
+                            writer.Flush();
+                        }
 
-                    tab.Messages.Add(new Message(_currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString()));
-                    tab.Message = string.Empty;
-                    // textBox.Clear();
+                        tab.Messages.Add(new Message(_currentUser.UserName, tab.Name, null, DateTime.UtcNow, null, tab.Message, ClrPcker_Background.SelectedColor.Value.ToString()));
+                        tab.Message = string.Empty;
+                        // textBox.Clear();
+                    }
                 }
-            }
-            catch (SocketException ex)
-            {
-                Console.WriteLine("SocketException: {0}", ex);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Exception: {0}", ex);
-                tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "There was an exception in encrypting and sending the message. Make sure the private key is not corrupt or missing", Brushes.Red.ToString()));
+                catch (SocketException ex)
+                {
+                    Console.WriteLine("SocketException: {0}", ex);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Exception: {0}", ex);
+                    tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "There was an exception in encrypting and sending the message. Make sure the private key is not corrupt or missing", Brushes.Red.ToString()));
+                }
             }
         }
 
@@ -487,5 +492,6 @@ namespace Client
         {
             DropClient();
         }
+
     }
 }

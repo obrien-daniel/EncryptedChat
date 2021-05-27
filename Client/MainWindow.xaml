@@ -3,25 +3,56 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:p="clr-namespace:PropertyTools.Wpf;assembly=PropertyTools.Wpf"
         mc:Ignorable="d"
-        Title="Ch
+        Title="Chat Client" Height="570" Width="500"
+        ResizeMode="NoResize">
+    <StackPanel>
+        <Grid>
+            <Grid.Resources>
+                <Style TargetType="Label">
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="Height" Value="24" />
+                    <Setter Property="Margin" Value="5" />
+                </Style>
+                <Style TargetType="PasswordBox">
+                    <Setter Property="Height" Value="24" />
+                    <Setter Property="Margin" Value="5" />
+                </Style>
+                <Style TargetType="TextBox">
+                    <Setter Property="Height" Value="24" />
+                    <Setter Property="Margin" Value="5" />
+                </Style>
+            </Grid.Resources>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Label Grid.Row="0" Grid.Column="0" x:Name="labelUsername" Content="Username:" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="textBoxUsername" Text="Daniel" />
 
-        at Client" Height="570" Width="489.66">
-    <Grid Margin="0,0,0.2,-3.4">
+            <Label Grid.Row="0" Grid.Column="2" x:Name="labelPassword" Content="Password:" />
+            <PasswordBox Grid.Row="0" Grid.Column="3" x:Name="passwordBox" Password="password" />
 
-        <TextBox x:Name="textBoxUsername" HorizontalAlignment="Left" Height="24" Margin="115,24,0,0" TextWrapping="Wrap" Text="Daniel" VerticalAlignment="Top" Width="109" />
-        <TextBox x:Name="textBoxIP" HorizontalAlignment="Left" Height="24" Margin="115,56,0,0" TextWrapping="Wrap" Text="127.0.0.1" VerticalAlignment="Top" Width="109" />
-        <Label x:Name="labelUsername" Content="Username:" HorizontalAlignment="Left" Margin="44,24,0,0" VerticalAlignment="Top" />
-        <Label x:Name="labelPassword" Content="Password:" HorizontalAlignment="Left" Margin="242,24,0,0" VerticalAlignment="Top" />
-        <Label x:Name="labelIP1" Content="IP:" HorizontalAlignment="Left" Margin="87,56,0,0" VerticalAlignment="Top" />
-        <PasswordBox x:Name="passwordBox" HorizontalAlignment="Left" Margin="309,24,0,0" VerticalAlignment="Top" Width="129" Height="24" Password="password" />
-        <Button x:Name="buttonConnect" Content="Connect" HorizontalAlignment="Left" Height="24" Margin="309,87,0,0" VerticalAlignment="Top" Width="129" Click="ButtonConnect_Click" />
-        <TextBox x:Name="textBoxPort" HorizontalAlignment="Left" Height="24" Margin="309,58,0,0" TextWrapping="Wrap" Text="43594" VerticalAlignment="Top" Width="129" />
-        <Label x:Name="labelIP" Content="Port:" HorizontalAlignment="Left" Margin="270,58,0,0" VerticalAlignment="Top" />
-        <Button x:Name="buttonDisconnect" Content="Disconnect" HorizontalAlignment="Left" Height="24" Margin="175,87,0,0" VerticalAlignment="Top" Width="129
-                " Click="ButtonDisconnect_Click" />
-        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="auto" Margin="10,128,0,0" VerticalAlignment="Top" Width="auto" ItemsSource="{Binding}" SelectionChanged="TabDynamic_SelectionChanged">
+            <Label Grid.Row="1" Grid.Column="0" x:Name="labelIP1" Content="IP:" />
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="textBoxIP" Text="127.0.0.1" />
+
+            <Label Grid.Row="1" Grid.Column="2" x:Name="labelIP" Content="Port:" />
+            <TextBox Grid.Row="1" Grid.Column="3" x:Name="textBoxPort" Text="43594" />
+
+            <StackPanel Grid.Row="2" Grid.ColumnSpan="4" HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button x:Name="buttonDisconnect" Content="Disconnect" Width="100" Height="24" Click="ButtonDisconnect_Click" Margin="5 0" />
+                <Button x:Name="buttonConnect" Content="Connect" Width="100" Height="24" Click="ButtonConnect_Click"   Margin="5 0" />
+            </StackPanel>
+        </Grid>
+        <TabControl x:Name="tabControl" HorizontalAlignment="Left" Height="Auto" Width="Auto" ItemsSource="{Binding}" SelectionChanged="TabDynamic_SelectionChanged" Margin="5">
             <TabControl.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Name}" />
@@ -29,39 +60,41 @@
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
                 <DataTemplate>
-                    <Grid>
-                        <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" VerticalAlignment="Top" Width="293">
-                            <ScrollViewer x:Name="scrollViewer" ScrollChanged="ScrollViewer_Changed" Height="240" VerticalScrollBarVisibility="Auto">
-                                <ListBox x:Name="listBoxMessages" HorizontalAlignment="Stretch" ItemsSource="{Binding Messages}" Height="auto"  Width="auto" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-             Grid.Row="0">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock  Foreground="{Binding FontColor}">
-                                                <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0}: {1}">
-                                                        <Binding Path="Sender" />
-                                                        <Binding Path="DecryptedMessage" />
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </ScrollViewer>
-                        </Border>
-                        <TextBox x:Name="textBox" HorizontalAlignment="Left" Text="{Binding Message}" Height="80" Margin="0,250,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="290" MaxLength="214" />
-                        <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding Users}" Height="244" Margin="315,0,0,0" VerticalAlignment="Top" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding UserName}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <Button x:Name="buttonSend" Content="Send" HorizontalAlignment="Left" Height="35" Margin="315,260,0,0" VerticalAlignment="Top" Width="141" Click="ButtonSend_Click" />
-                    </Grid>
+                    <StackPanel  Margin="5">
+                        <StackPanel Orientation="Horizontal">
+                            <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Left" Height="244" Width="293">
+                                <ScrollViewer x:Name="scrollViewer" ScrollChanged="ScrollViewer_Changed" Height="240" VerticalScrollBarVisibility="Auto">
+                                    <ListBox x:Name="listBoxMessages" HorizontalAlignment="Stretch" ItemsSource="{Binding Messages}" Height="auto" Width="auto"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Foreground="{Binding FontColor}">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0}: {1}">
+                                                            <Binding Path="Sender" />
+                                                            <Binding Path="DecryptedMessage" />
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </ScrollViewer>
+                            </Border>
+                            <ListBox x:Name="listBox" HorizontalAlignment="Left" ItemsSource="{Binding Users}" Height="244" Width="154" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="2">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding UserName}" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                        <TextBox x:Name="textBox" Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}" Height="80" HorizontalAlignment="Stretch" TextWrapping="Wrap" AcceptsReturn="True"  MaxLength="214"
+                                     PreviewKeyDown="TextBox_PreviewKeyDown" />
+                    </StackPanel>
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
-        <xctk:ColorPicker Name="ClrPcker_Background" Width="50" Height="25" SelectedColor="Black" Margin="409,497,0,0" />
-    </Grid>
+        <p:ColorPicker Name="ClrPcker_Background" Width="Auto" Height="25" SelectedColor="Black" HorizontalAlignment="Right" />
+    </StackPanel>
 </Window>
