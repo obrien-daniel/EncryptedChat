@@ -6,14 +6,14 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <None Update="Cert\client.pfx">
+    <None Update="Cert\client_ssl.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.0.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="PropertyTools.Wpf" Version="3.1.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
 </Project>

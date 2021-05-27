@@ -26,6 +26,7 @@ namespace Server
             _writeBufferLock = new object();
             _disposed = false;
         }
+
         private void FlushBuffer()
         {
             //keep writing to the stream, and block when the buffer is empty
@@ -39,12 +40,15 @@ namespace Server
 
         public void Write(byte[] data)
         {
-            if (_disposed)
-                throw new ObjectDisposedException("ConcurrentStreamWriter");
+            if (_disposed) throw new ObjectDisposedException("ConcurrentStreamWriter");
 
             lock (_writeBufferLock)
+            {
                 foreach (byte b in data)
+                {
                     _buffer.Add(b);
+                }
+            }
 
             InitFlusher();
         }
