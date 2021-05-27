@@ -11,10 +11,13 @@ namespace Client
         private string _message;
         public string Message { get => _message; set { _message = value; OnPropertyChanged(); } }
         public BindingList<Message> Messages { get; set; }
+
         //Binding list containing all connected users on the server
         public BindingList<User> Users { get; set; }
+
         //lock object for synchronization;
         public object _syncLock = new object();
+
         public object _syncLock2 = new object();
 
         public ChatRoomView(string name)
@@ -27,7 +30,9 @@ namespace Client
             //listBoxMessages.ItemsSource = messages;
             OnPropertyChanged();
         }
+
         public event PropertyChangedEventHandler PropertyChanged;
+
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

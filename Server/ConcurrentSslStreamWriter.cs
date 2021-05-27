@@ -26,6 +26,7 @@ namespace Server
             _writeBufferLock = new object();
             _disposed = false;
         }
+
         private void FlushBuffer()
         {
             //keep writing to the stream, and block when the buffer is empty

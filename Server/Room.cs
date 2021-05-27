@@ -14,12 +14,16 @@ namespace Server
         public Dictionary<User, ConcurrentStreamWriter> ConnectedUsers = new Dictionary<User, ConcurrentStreamWriter>(); // Username mapped to SSLStream
         public string Admin { get; set; } // Owner/ Creator of chatroom
         public string Name { get; set; } // Name of Chat Room, used to join
+
         // Initializing all of these Lists here for now, change in future
         public List<string> Moderators = new List<string>();
+
         //public List<User> ConnectedUsers = new List<User>();
         public List<string> BannedUsers = new List<string>();
+
         public List<string> AllowedUsers = new List<string>(); // Used if chat is private
         public bool IsPublic; // If chatroom is public to anyone
+
         public Room(string admin, string name, bool isPublic)
         {
             Admin = admin;
@@ -27,24 +31,28 @@ namespace Server
             Name = name; //Check if it doesn't already exist, or use admin + name to create so it is unique
             IsPublic = isPublic;
         }
+
         public void AddUser(string user)
         {
             if (!AllowedUsers.Contains(user))
                 AllowedUsers.Add(user);
             //ConnectedUsers.Add(user, sslStream);
         }
+
         public void BanUser(string user)
         {
             if (AllowedUsers.Contains(user))
                 AllowedUsers.Remove(user);
             BannedUsers.Add(user);
         }
+
         public void KickUser(string user)
         {
             KeyValuePair<User, ConcurrentStreamWriter> usr = ConnectedUsers.First(i => i.Key.Username == user);
             if (usr.Key != null)
                 ConnectedUsers.Remove(usr.Key);
         }
+
         public void UnbanUser(string user)
         {
             if (BannedUsers.Contains(user))
@@ -135,6 +143,7 @@ namespace Server
             UpdateAllConnectedUsersWithNewUser(user, true);
             return true;
         }
+
         public void Leave(User user)
         {
             if (ConnectedUsers.ContainsKey(user))
@@ -193,6 +202,7 @@ namespace Server
             }
             return false;
         }
+
         /// <summary>
         /// Updates user list of a new client with all current users
         /// </summary>
@@ -219,6 +229,7 @@ namespace Server
                 }
             }
         }
+
         /// <summary>
         /// Update an already connected client's user list about one specific user.
         /// true for add, false for remove
@@ -248,7 +259,6 @@ namespace Server
                     broadcastStream.Write(mem.ToArray());
                 }
             }
-
         }
     }
 }

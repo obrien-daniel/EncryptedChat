@@ -14,6 +14,7 @@ namespace Client
         {
             InitializeComponent();
         }
+
         public bool Canceled { get; set; }
         public string RoomName { get; set; }
 

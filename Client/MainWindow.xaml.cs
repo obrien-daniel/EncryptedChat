@@ -22,8 +22,10 @@ namespace Client
     {
         //Server certificate name
         private static readonly string _serverCertificateName = "MyServer";
+
         //Directory of client certificate used in SSL authentication
         private static readonly string _clientCertificateFile = "./Cert/client.pfx";
+
         private static readonly string _clientCertificatePassword = null;
         private TcpClient _client = new TcpClient();
         private SslStream _sslStream = null;
@@ -48,9 +50,8 @@ namespace Client
             buttonDisconnect.IsEnabled = false;
             // buttonSend.IsEnabled = false;
             //tabControl
-
-
         }
+
         /// <summary>
         /// Listens for any communication from the server.
         /// Three opcodes are used for communication from the server.
@@ -110,7 +111,6 @@ namespace Client
                     }
                     else
                     {
-
                         ChatRoomView tab = Tabs.FirstOrDefault(i => i.Name == chatRoom);
                         if (tab != null)
                         {
@@ -160,6 +160,7 @@ namespace Client
                 Console.WriteLine("ServerListener exception: " + ex);
             }
         }
+
         /// <summary>
         /// Updates the UI thread whenever the server sends a message or user status update.
         /// </summary>
@@ -188,7 +189,6 @@ namespace Client
                                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, response.Item2, Brushes.Blue.ToString()));
                             }
                         }
-
                     }
                 }
                 else if (e.Result is Message)
@@ -225,10 +225,12 @@ namespace Client
                 DropClient();
             }
         }
+
         public enum Opcode
         {
             Join, Leave, SendMessage, AddUser, KickUser, BanUser, UnbanUser
         }
+
         /// <summary>
         /// Sends encrypted message to each user currently connected to the server.
         /// </summary>
@@ -275,18 +277,18 @@ namespace Client
             {
                 Console.WriteLine("Exception: {0}", ex);
                 tab.Messages.Add(new Message(null, tab.Name, null, DateTime.Now, null, "There was an exception in encrypting and sending the message. Make sure the private key is not corrupt or missing", Brushes.Red.ToString()));
-
             }
-
         }
+
         private void ScrollViewer_Changed(object sender, ScrollChangedEventArgs e)
         {
             ScrollViewer scrollViewer = sender as ScrollViewer;
             if (e.ExtentHeightChange != 0)
                 scrollViewer.ScrollToVerticalOffset(scrollViewer.ExtentHeight);
         }
+
         /// <summary>
-        /// Connects to the server and authenticates the user. If the user is authenticated, a background worker thread is created 
+        /// Connects to the server and authenticates the user. If the user is authenticated, a background worker thread is created
         /// to listen to any server communication. This is done in a background thread to free up the main UI thread, as to prevent freezing.
         /// </summary>
         /// <param name="sender"></param>
@@ -305,8 +307,8 @@ namespace Client
                 _client = new TcpClient(); //causes the handle of the previous TcpClient to be lost
                 _client.Connect(_serverIP, _port);
 
-                X509Certificate2 clientCertificate = new X509Certificate2(_clientCertificateFile, _clientCertificatePassword);
-                X509CertificateCollection clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
+                var clientCertificate = new X509Certificate2(_clientCertificateFile, _clientCertificatePassword);
+                var clientCertificateCollection = new X509CertificateCollection(new X509Certificate[] { clientCertificate });
 
                 //creates an SSL Stream that contains the TCP client socket as the underlying stream.
                 _sslStream = new SslStream(_client.GetStream(), false, App_CertificateValidation);
@@ -353,6 +355,7 @@ namespace Client
                 DropClient();
             }
         }
+
         private void TabDynamic_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (tabControl.SelectedItem is ChatRoomView tab && tab.Name != null)
@@ -379,11 +382,11 @@ namespace Client
                         writer.Write((int)Opcode.Join);
                         writer.Write(name);
                         writer.Flush();
-
                     }
                 }
             }
         }
+
         /// <summary>
         /// Serialize object into byte array
         /// </summary>
@@ -396,6 +399,7 @@ namespace Client
             formatter.Serialize(memoryStream, serializableObject);
             return memoryStream.ToArray();
         }
+
         /// <summary>
         /// Deserializes byte array
         /// </summary>
@@ -422,6 +426,7 @@ namespace Client
             Console.WriteLine("*** SSL Error: " + sslPolicyErrors.ToString());
             return false;
         }
+
         /// <summary>
         /// Closes all client connections and sets the client to an unconnected state in the GUI.
         /// </summary>
@@ -444,6 +449,7 @@ namespace Client
             //buttonSend.IsEnabled = false;
             buttonConnect.IsEnabled = true;
         }
+
         /// <summary>
         /// Disconnects the client and updates the GUI to reflect the disconnection.
         /// </summary>
@@ -454,5 +460,4 @@ namespace Client
             DropClient();
         }
     }
-
 }

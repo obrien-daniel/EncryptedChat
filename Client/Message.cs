@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
+
 namespace Client
 {
     /// <summary>
@@ -16,8 +17,10 @@ namespace Client
         public string EncryptedMessage { get; set; }
         private byte[] _encryptedSymmetrickey;
         private byte[] _encryptedIV;
+
         [NonSerialized]
         private string _decryptedMessage;
+
         public string DecryptedMessage { get => _decryptedMessage; set => _decryptedMessage = value; }
         public string Font { get; set; }
         public string FontColor { get; set; }
@@ -36,6 +39,7 @@ namespace Client
             this.DecryptedMessage = DecryptedMessage;
             this.FontColor = FontColor;
         }
+
         public void Encrypt()
         {
             if (DecryptedMessage == null || User == null)
@@ -57,6 +61,7 @@ namespace Client
             _encryptedSymmetrickey = RSAEncrypt(rijAlg.Key);
             _encryptedIV = RSAEncrypt(rijAlg.IV);
         }
+
         public void Decrypt(string privateKey)
         {
             if (EncryptedMessage == null || EncryptedMessage.Length <= 0)
@@ -83,6 +88,7 @@ namespace Client
             // Read the decrypted bytes from the decrypting stream  and place them in a string.
             DecryptedMessage = srDecrypt.ReadToEnd();
         }
+
         private byte[] RSAEncrypt(byte[] message)
         {
             try
@@ -91,7 +97,7 @@ namespace Client
                 //Create a new instance of RSACryptoServiceProvider.
                 RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
                 rsa.FromXmlString(User.PublicKey);
-                //Encrypt the passed byte array and specify OAEP padding.  
+                //Encrypt the passed byte array and specify OAEP padding.
                 return rsa.Encrypt(message, true);
             }
             catch (CryptographicException e)
@@ -100,6 +106,7 @@ namespace Client
                 return null;
             }
         }
+
         /// <summary>
         /// Decrypts byte array messages with a private key using the RSA algorithm.
         /// </summary>
@@ -113,7 +120,7 @@ namespace Client
                 //Create a new instance of RSACryptoServiceProvider.
                 RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
                 rsa.FromXmlString(privateKey);
-                //Decrypt the passed byte array and specify OAEP padding.  
+                //Decrypt the passed byte array and specify OAEP padding.
                 return rsa.Decrypt(message, true);
             }
             catch (CryptographicException e)

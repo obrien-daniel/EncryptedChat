@@ -18,8 +18,10 @@ namespace Server
         //Hashtable of all client sockets
         //public static Dictionary<User, SslStream> ClientList = new Dictionary<User,SslStream>(); // Global Chat Room
         public static Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
+
         //Directory of server certificate used in SSL authentication
         private static readonly string _serverCertificateFile = "./Cert/server.pfx";
+
         private static readonly string _serverCertificatePassword = null;
 
         private static void Main(string[] args)
@@ -49,10 +51,10 @@ namespace Server
                  */
                 Room globalChat = new Room("Daniel", "Global", true);
                 Rooms.Add("Global", globalChat);
-                /* 
+                /*
                 Enter the listening loop. This will accept a TCP client and then attempt to authenticate the user.
                 If the user is authenticated, a thread will be created to handle the client communication of the user,
-                while the loop continues listening for new client connections.    
+                while the loop continues listening for new client connections.
                 */
                 while (true)
                 {
@@ -80,7 +82,6 @@ namespace Server
                     if (File.Exists("./Users/" + userName + ".xml")) //load user info if user exists
                     {
                         user = DeSerializeObject<User>("./Users/" + userName + ".xml");
-
                     }
                     else //if user does not exist, create one
                     {
@@ -128,7 +129,6 @@ namespace Server
                         ClientHandler client = new ClientHandler(sslStream, user);
                         client.Start();
                     }
-
                 }
             }
             catch (SocketException e)
@@ -146,6 +146,7 @@ namespace Server
             Console.WriteLine("\nHit enter to continue...");
             Console.Read();
         }
+
         /// <summary>
         /// Validate the server's certificate.
         /// </summary>
@@ -284,7 +285,6 @@ namespace Server
                 Console.WriteLine("SerializeObject exception: " + ex);
             }
         }
-
 
         /// <summary>
         /// Deserializes an xml file into an object list

@@ -13,6 +13,7 @@ namespace Server
         private ConcurrentStreamWriter ClientSocketWriter { get; set; }
         private User User { get; set; }
         private List<string> ConnectedRooms { get; set; }
+
         public ClientHandler(SslStream client, User user)//, string roomName)
         {
             ClientSocket = client;
@@ -21,6 +22,7 @@ namespace Server
             ConnectedRooms = new List<string>();
             //RoomName = roomName;
         }
+
         /// <summary>
         /// Creates a thread to run the client listener
         /// </summary>
@@ -43,6 +45,7 @@ namespace Server
             }
             ConnectedRooms.Add(chatRoom);
         }
+
         public enum Opcode
         {
             Join, Leave, SendMessage, AddUser, KickUser, BanUser, UnbanUser
@@ -83,8 +86,10 @@ namespace Server
                                     ConnectedRooms.Add(chatRoom);
                             }
                             break;
+
                         case Opcode.Leave:
                             break;
+
                         case Opcode.SendMessage:
                             string roomName = reader.ReadString();
                             string userName = reader.ReadString();
@@ -92,24 +97,28 @@ namespace Server
                             byte[] encryptedMessage = reader.ReadBytes(count);
                             Program.Rooms[roomName].SendMessage(encryptedMessage, count, User.Username, userName);
                             break;
+
                         case Opcode.AddUser:
                             string user = reader.ReadString();
                             chatRoom = reader.ReadString();
                             if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
                                 Program.Rooms[chatRoom].AllowedUsers.Add(user);
                             break;
+
                         case Opcode.KickUser:
                             user = reader.ReadString();
                             chatRoom = reader.ReadString();
                             if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
                                 Program.Rooms[chatRoom].KickUser(user);
                             break;
+
                         case Opcode.BanUser:
                             user = reader.ReadString();
                             chatRoom = reader.ReadString();
                             if (Program.Rooms[chatRoom].Moderators.Contains(User.Username) || Program.Rooms[chatRoom].Admin.Equals(User.Username))
                                 Program.Rooms[chatRoom].BanUser(user);
                             break;
+
                         case Opcode.UnbanUser:
                             user = reader.ReadString();
                             chatRoom = reader.ReadString();

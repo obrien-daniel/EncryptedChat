@@ -13,6 +13,7 @@ namespace Client
         public string UserName { get => username; set => username = value; }
         public string PublicKey { get; set; }
         public List<User> Contacts;
+
         public User(string userName, string publicKey)
         {
             UserName = userName;
